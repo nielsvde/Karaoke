@@ -176,24 +176,32 @@
       scroll-behavior: smooth;
     }
 
+    /* Regels aangepast om verspringen te voorkomen */
     .lyric-line {
-      padding: 10px 12px;
-      font-size: 0.95rem;
+      padding: 8px 12px;
+      font-size: 1.05rem;
       color: var(--text-muted);
-      border-radius: 8px;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: transform 0.25s ease, color 0.25s ease, text-shadow 0.25s ease;
       margin-bottom: 6px;
-      line-height: 1.4;
+      line-height: 1.5;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent; /* Geen achtergrondvak */
+      border: none;
+      transform-origin: center center;
     }
 
+    /* Actieve regel zonder achtergrondvak en zonder springen */
     .lyric-line.active {
-      font-size: 1.2rem;
       font-weight: 700;
       color: #ffffff;
-      background: linear-gradient(135deg, rgba(99, 102, 241, 0.35) 0%, rgba(236, 72, 153, 0.35) 100%);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+      background: transparent;
+      border: none;
+      transform: scale(1.15); /* Vergroting zonder de lay-out te verstoren */
+      text-shadow: 0 0 12px rgba(255, 255, 255, 0.8), 0 0 24px rgba(99, 102, 241, 0.6);
     }
 
     /* Fullscreen Overlay Styles */
@@ -218,15 +226,15 @@
     }
 
     .lyrics-wrapper.fullscreen .lyric-line {
-      font-size: 1.6rem;
-      padding: 16px 20px;
+      font-size: 1.8rem;
+      padding: 12px 20px;
       margin-bottom: 12px;
+      min-height: 64px;
     }
 
     .lyrics-wrapper.fullscreen .lyric-line.active {
-      font-size: 2.3rem;
-      padding: 22px 24px;
-      text-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+      transform: scale(1.2);
+      text-shadow: 0 0 20px rgba(255, 255, 255, 0.9), 0 0 35px rgba(168, 85, 247, 0.7);
     }
 
     .lyrics-wrapper.fullscreen .btn-fullscreen {
@@ -642,12 +650,10 @@
       return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     }
 
-    /* Fullscreen functionaliteit */
     function toggleFullscreen() {
       if (!document.fullscreenElement && !lyricsWrapper.classList.contains('fullscreen')) {
         if (lyricsWrapper.requestFullscreen) {
           lyricsWrapper.requestFullscreen().catch(() => {
-            // Fallback voor browsers die native API weigeren
             lyricsWrapper.classList.add('fullscreen');
           });
         } else {
@@ -681,7 +687,6 @@
         fullscreenText.textContent = "Volledig scherm";
         fullscreenIcon.innerHTML = '<path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>';
       }
-      // Herbereken scroll positie direct na wissel
       if (activeLineIndex !== -1) {
         const activeEl = document.getElementById(`line-${activeLineIndex}`);
         if (activeEl) activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
