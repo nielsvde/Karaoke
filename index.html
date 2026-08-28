@@ -6,6 +6,9 @@
   <meta name="theme-color" content="#0f172a">
   <title>Karaoke Duo Player + Fullscreen Lyrics</title>
   
+  <!-- Automatisch gegenereerde PWA Manifest via Data URI -->
+  <link rel="manifest" href='data:application/manifest+json,{"name":"Karaoke Duo Player","short_name":"KaraokeApp","start_url":".","display":"standalone","background_color":"#0f172a","theme_color":"#0f172a","icons":[{"src":"https://via.placeholder.com/192/6366f1/ffffff?text=Karaoke","sizes":"192x192","type":"image/png"},{"src":"https://via.placeholder.com/512/6366f1/ffffff?text=Karaoke","sizes":"512x512","type":"image/png"}]}'>
+
   <style>
     :root {
       --bg-main: #0f172a;
@@ -69,6 +72,32 @@
     header p {
       font-size: 0.85rem;
       color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    /* Installeer App Knop Styling */
+    .btn-install-app {
+      display: none;
+      background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+      color: #ffffff;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      margin: 0 auto;
+    }
+
+    .btn-install-app:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(99, 102, 241, 0.6);
+    }
+
+    .btn-install-app:active {
+      transform: translateY(0);
     }
 
     .file-inputs {
@@ -189,7 +218,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: transparent; /* Geen achtergrondvak */
+      background: transparent;
       border: none;
       transform-origin: center center;
     }
@@ -200,7 +229,7 @@
       color: #ffffff;
       background: transparent;
       border: none;
-      transform: scale(1.15); /* Vergroting zonder de lay-out te verstoren */
+      transform: scale(1.15);
       text-shadow: 0 0 12px rgba(255, 255, 255, 0.8), 0 0 24px rgba(99, 102, 241, 0.6);
     }
 
@@ -462,6 +491,10 @@
     <header>
       <h1>Karaoke Duo Player</h1>
       <p>Synchronisatie per regel</p>
+      <!-- Installeer App Knop -->
+      <button id="installAppBtn" class="btn-install-app">
+        📲 App Installeren
+      </button>
     </header>
 
     <div class="file-inputs">
@@ -582,6 +615,43 @@
   </div>
 
   <script>
+    // --- PWA Service Worker Registratie (Inline via Blob) ---
+    if ('serviceWorker' in navigator) {
+      const swCode = `
+        self.addEventListener('install', e => e.waitUntil(self.skipWaiting()));
+        self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
+        self.addEventListener('fetch', e => e.respondWith(fetch(e.request)));
+      `;
+      const blob = new Blob([swCode], { type: 'application/javascript' });
+      const swUrl = URL.createObjectURL(blob);
+      navigator.serviceWorker.register(swUrl).catch(() => {});
+    }
+
+    // --- PWA Install App Knop Logica ---
+    let deferredPrompt;
+    const installAppBtn = document.getElementById('installAppBtn');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      installAppBtn.style.display = 'block';
+    });
+
+    installAppBtn.addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        installAppBtn.style.display = 'none';
+      }
+      deferredPrompt = null;
+    });
+
+    window.addEventListener('appinstalled', () => {
+      installAppBtn.style.display = 'none';
+    });
+
+    // --- Audio & Karaoke Logica ---
     let audioCtx = null;
     let musicBuffer = null;
     let vocalBuffer = null;
