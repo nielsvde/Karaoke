@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0f172a">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Karaoke Two-Track Player</title>
+  <title>Karaoke Two-Track Player + AI Transcription</title>
   
   <link rel="manifest" href='data:application/manifest+json,{"name":"Karaoke Duo Player","short_name":"Karaoke","start_url":"./index.html","display":"standalone","background_color":"#0f172a","theme_color":"#0f172a","icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 512 512\"><rect width=\"512\" height=\"512\" rx=\"100\" fill=\"%236366f1\"/><path d=\"M256 120a64 64 0 00-64 64v112a64 64 0 00128 0V184a64 64 0 00-64-64zm104 112a8 8 0 00-16 0 88 88 0 01-176 0 8 8 0 00-16 0 104 104 0 0096 103.4V384h-40a8 8 0 000 16h96a8 8 0 000-16h-40v-48.6A104 104 0 00360 232z\" fill=\"white\"/></svg>","sizes":"512x512","type":"image/svg+xml"}]}'>
 
@@ -78,7 +78,7 @@
       display: flex;
       flex-direction: column;
       gap: 14px;
-      margin-bottom: 24px;
+      margin-bottom: 20px;
     }
 
     .file-card {
@@ -137,10 +137,23 @@
 
     input[type="file"] { display: none; }
 
+    /* Progress & Time display */
+    .progress-section {
+      margin-bottom: 20px;
+    }
+
+    .time-display {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
     .controls-main {
       display: flex;
       gap: 12px;
-      margin-bottom: 28px;
+      margin-bottom: 20px;
     }
 
     .btn-action {
@@ -181,10 +194,53 @@
       cursor: not-allowed;
     }
 
+    /* AI Transcribe Button & Display */
+    .transcribe-section {
+      margin-bottom: 20px;
+    }
+
+    .btn-transcribe {
+      width: 100%;
+      background: rgba(236, 72, 153, 0.15);
+      border: 1px solid var(--accent-vocal);
+      color: #fbcfe8;
+      padding: 10px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .btn-transcribe:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      border-color: var(--border-color);
+      color: var(--text-muted);
+    }
+
+    .lyrics-box {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 12px;
+      max-height: 120px;
+      overflow-y: auto;
+      font-size: 0.85rem;
+      line-height: 1.4;
+      color: #e2e8f0;
+      white-space: pre-wrap;
+      user-select: text;
+    }
+
     .mixer-section {
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 16px;
     }
 
     .channel {
@@ -297,6 +353,14 @@
       cursor: pointer;
     }
   </style>
+
+  <!-- Import Transformers.js via ES Module CDN -->
+  <script type="module">
+    import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
+    // Sta toe dat modellen van CDN worden gedownload
+    env.allowLocalModels = false;
+    window.pipeline = pipeline;
+  </script>
 </head>
 <body>
 
@@ -309,7 +373,7 @@
 
     <header>
       <h1>Karaoke Duo Player</h1>
-      <p>Laad je 2 MP3-sporen in & mix je zang live</p>
+      <p>Laad 2 MP3-sporen & genereer zangtekst met AI</p>
     </header>
 
     <div class="file-inputs">
@@ -329,6 +393,21 @@
         </div>
         <button class="btn-file" onclick="document.getElementById('vocalInput').click()">Kiezen</button>
         <input type="file" id="vocalInput" accept="audio/*">
+      </div>
+    </div>
+
+    <div class="transcribe-section">
+      <button id="transcribeBtn" class="btn-transcribe" disabled>
+        ✨ Zang omzetten naar tekst (AI)
+      </button>
+      <div id="lyricsBox" class="lyrics-box">Geüploade zangtekst verschijnt hier...</div>
+    </div>
+
+    <div class="progress-section">
+      <input type="range" id="seekSlider" min="0" max="100" value="0" disabled>
+      <div class="time-display">
+        <span id="currentTime">00:00</span>
+        <span id="durationTime">00:00</span>
       </div>
     </div>
 
@@ -372,7 +451,7 @@
     </div>
 
     <div class="status-bar" id="statusBar">
-      Kies 2 MP3 sporen om te beginnen
+      Kies minstens 1 spoor om te beginnen
     </div>
 
   </div>
@@ -388,6 +467,12 @@
     let vocalGainNode = null;
 
     let isPlaying = false;
+    let startTime = 0;
+    let pauseOffset = 0;
+    let animFrame = null;
+    
+    // Transcriber pipeline instance
+    let transcriber = null;
 
     const musicInput = document.getElementById('musicInput');
     const vocalInput = document.getElementById('vocalInput');
@@ -398,6 +483,11 @@
     const musicVolVal = document.getElementById('musicVolVal');
     const vocalVolVal = document.getElementById('vocalVolVal');
     const statusBar = document.getElementById('statusBar');
+    const seekSlider = document.getElementById('seekSlider');
+    const currentTimeEl = document.getElementById('currentTime');
+    const durationTimeEl = document.getElementById('durationTime');
+    const transcribeBtn = document.getElementById('transcribeBtn');
+    const lyricsBox = document.getElementById('lyricsBox');
 
     function initAudio() {
       if (!audioCtx) {
@@ -414,6 +504,19 @@
       initAudio();
       const arrayBuffer = await file.arrayBuffer();
       return await audioCtx.decodeAudioData(arrayBuffer);
+    }
+
+    function getMaxDuration() {
+      const musicDur = musicBuffer ? musicBuffer.duration : 0;
+      const vocalDur = vocalBuffer ? vocalBuffer.duration : 0;
+      return Math.max(musicDur, vocalDur);
+    }
+
+    function formatTime(sec) {
+      if (isNaN(sec)) return "00:00";
+      const m = Math.floor(sec / 60);
+      const s = Math.floor(sec % 60);
+      return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     }
 
     musicInput.addEventListener('change', async (e) => {
@@ -444,6 +547,7 @@
       try {
         vocalBuffer = await decodeAudioFile(file);
         statusBar.textContent = "Zang geladen!";
+        transcribeBtn.disabled = false;
         checkReady();
       } catch (err) {
         statusBar.textContent = "Fout bij laden van zang-bestand.";
@@ -451,23 +555,17 @@
     });
 
     function checkReady() {
-      if (musicBuffer && vocalBuffer) {
+      const duration = getMaxDuration();
+      if (duration > 0) {
         playBtn.disabled = false;
         stopBtn.disabled = false;
+        seekSlider.disabled = false;
+        durationTimeEl.textContent = formatTime(duration);
         statusBar.textContent = "Klaar om af te spelen!";
-      } else if (musicBuffer) {
-        statusBar.textContent = "Upload nu nog het zangspoor.";
-      } else if (vocalBuffer) {
-        statusBar.textContent = "Upload nu nog het muziekspoor.";
       }
     }
 
-    playBtn.addEventListener('click', () => {
-      if (isPlaying) {
-        stopAudio();
-        return;
-      }
-
+    function startAudio(offset = 0) {
       initAudio();
       if (audioCtx.state === 'suspended') {
         audioCtx.resume();
@@ -475,43 +573,92 @@
 
       stopAudioSources();
 
-      musicSource = audioCtx.createBufferSource();
-      vocalSource = audioCtx.createBufferSource();
+      const startTimestamp = audioCtx.currentTime + 0.05;
 
-      musicSource.buffer = musicBuffer;
-      vocalSource.buffer = vocalBuffer;
+      if (musicBuffer) {
+        musicSource = audioCtx.createBufferSource();
+        musicSource.buffer = musicBuffer;
+        musicSource.connect(musicGainNode);
+        musicSource.start(startTimestamp, offset);
+      }
 
-      musicSource.connect(musicGainNode);
-      vocalSource.connect(vocalGainNode);
+      if (vocalBuffer) {
+        vocalSource = audioCtx.createBufferSource();
+        vocalSource.buffer = vocalBuffer;
+        vocalSource.connect(vocalGainNode);
+        vocalSource.start(startTimestamp, offset);
+      }
 
-      const startTime = audioCtx.currentTime + 0.1;
-      musicSource.start(startTime);
-      vocalSource.start(startTime);
-
+      startTime = audioCtx.currentTime - offset;
       isPlaying = true;
       playBtn.innerHTML = `<svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg> Pauze`;
       statusBar.textContent = "Speelt af...";
 
-      musicSource.onended = () => {
+      updateProgress();
+    }
+
+    function updateProgress() {
+      if (!isPlaying) return;
+
+      const currentPos = audioCtx.currentTime - startTime;
+      const totalDur = getMaxDuration();
+
+      if (currentPos >= totalDur) {
+        stopAudio();
+        return;
+      }
+
+      seekSlider.value = (currentPos / totalDur) * 100;
+      currentTimeEl.textContent = formatTime(currentPos);
+
+      animFrame = requestAnimationFrame(updateProgress);
+    }
+
+    playBtn.addEventListener('click', () => {
+      if (isPlaying) {
+        pauseOffset = audioCtx.currentTime - startTime;
+        stopAudioSources();
         isPlaying = false;
-        playBtn.innerHTML = `<svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> Afspelen`;
-        statusBar.textContent = "Afspelen voltooid.";
-      };
+        cancelAnimationFrame(animFrame);
+        playBtn.innerHTML = `<svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> Hervatten`;
+        statusBar.textContent = "Gepauzeerd.";
+      } else {
+        startAudio(pauseOffset);
+      }
     });
 
     function stopAudioSources() {
-      if (musicSource) { try { musicSource.stop(); musicSource.disconnect(); } catch(e){} }
-      if (vocalSource) { try { vocalSource.stop(); vocalSource.disconnect(); } catch(e){} }
+      if (musicSource) { try { musicSource.stop(); musicSource.disconnect(); } catch(e){} musicSource = null; }
+      if (vocalSource) { try { vocalSource.stop(); vocalSource.disconnect(); } catch(e){} vocalSource = null; }
     }
 
     function stopAudio() {
       stopAudioSources();
       isPlaying = false;
+      pauseOffset = 0;
+      cancelAnimationFrame(animFrame);
+      seekSlider.value = 0;
+      currentTimeEl.textContent = "00:00";
       playBtn.innerHTML = `<svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> Afspelen`;
       statusBar.textContent = "Gestopt.";
     }
 
     stopBtn.addEventListener('click', stopAudio);
+
+    seekSlider.addEventListener('input', (e) => {
+      const totalDur = getMaxDuration();
+      const targetTime = (e.target.value / 100) * totalDur;
+      currentTimeEl.textContent = formatTime(targetTime);
+    });
+
+    seekSlider.addEventListener('change', (e) => {
+      const totalDur = getMaxDuration();
+      pauseOffset = (e.target.value / 100) * totalDur;
+
+      if (isPlaying) {
+        startAudio(pauseOffset);
+      }
+    });
 
     vocalVol.addEventListener('input', (e) => {
       applyVocalVolume(parseFloat(e.target.value));
@@ -541,6 +688,58 @@
     function setVocalPreset(val) {
       applyVocalVolume(val);
     }
+
+    /* === AI SPEECH-TO-TEXT TRANSCRIPTIE (TRANSFORMERS.JS) === */
+    transcribeBtn.addEventListener('click', async () => {
+      if (!vocalBuffer) return;
+
+      transcribeBtn.disabled = true;
+      lyricsBox.textContent = "AI-model laden... (eerste keer duurt even)";
+      statusBar.textContent = "Transcriptie wordt gestart...";
+
+      try {
+        if (!window.pipeline) {
+          throw new Error("Transformers.js kon niet worden geladen.");
+        }
+
+        if (!transcriber) {
+          // Gebruik het snelle en lichte Whisper-tiny model
+          transcriber = await window.pipeline(
+            'automatic-speech-recognition', 
+            'Xenova/whisper-tiny'
+          );
+        }
+
+        lyricsBox.textContent = "Zang analyseren...";
+
+        // Haal audio data uit de audioBuffer (16kHz mono is vereist voor Whisper)
+        const offlineCtx = new OfflineAudioContext(1, vocalBuffer.duration * 16000, 16000);
+        const sourceNode = offlineCtx.createBufferSource();
+        sourceNode.buffer = vocalBuffer;
+        sourceNode.connect(offlineCtx.destination);
+        sourceNode.start();
+        
+        const renderedBuffer = await offlineCtx.startRendering();
+        const audioData = renderedBuffer.getChannelData(0);
+
+        // Voer de transcriptie uit
+        const output = await transcriber(audioData, {
+          chunk_length_s: 30,
+          stride_length_s: 5,
+          language: 'dutch', // pas aan naar 'english' of laat automatisch detecteren indien gewenst
+          task: 'transcribe'
+        });
+
+        lyricsBox.textContent = output.text || "Geen tekst kunnen herkennen.";
+        statusBar.textContent = "Transcriptie voltooid!";
+      } catch (err) {
+        console.error(err);
+        lyricsBox.textContent = "Fout bij analyseren: " + err.message;
+        statusBar.textContent = "Transcriptie mislukt.";
+      } finally {
+        transcribeBtn.disabled = false;
+      }
+    });
 
     if ('serviceWorker' in navigator) {
       const swCode = `
