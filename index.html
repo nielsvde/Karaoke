@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#0f172a">
-  <title>Karaoke Duo Player + Precision Offset Control</title>
+  <title>Karaoke Duo Player + Fullscreen Lyrics</title>
   
   <style>
     :root {
@@ -136,6 +136,35 @@
     input[type="file"] { display: none; }
 
     /* Karaoke Display Container */
+    .lyrics-wrapper {
+      position: relative;
+      margin-bottom: 12px;
+    }
+
+    .btn-fullscreen {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 10;
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      backdrop-filter: blur(4px);
+      transition: all 0.2s ease;
+    }
+
+    .btn-fullscreen:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
     .lyrics-container {
       background: rgba(15, 23, 42, 0.8);
       border: 1px solid var(--border-color);
@@ -143,7 +172,6 @@
       height: 180px;
       overflow-y: auto;
       padding: 60px 16px;
-      margin-bottom: 12px;
       text-align: center;
       scroll-behavior: smooth;
     }
@@ -166,6 +194,46 @@
       background: linear-gradient(135deg, rgba(99, 102, 241, 0.35) 0%, rgba(236, 72, 153, 0.35) 100%);
       border: 1px solid rgba(255, 255, 255, 0.2);
       text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+    }
+
+    /* Fullscreen Overlay Styles */
+    .lyrics-wrapper.fullscreen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 9999;
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .lyrics-wrapper.fullscreen .lyrics-container {
+      height: 100%;
+      border-radius: 20px;
+      padding: 40vh 20px;
+    }
+
+    .lyrics-wrapper.fullscreen .lyric-line {
+      font-size: 1.6rem;
+      padding: 16px 20px;
+      margin-bottom: 12px;
+    }
+
+    .lyrics-wrapper.fullscreen .lyric-line.active {
+      font-size: 2.3rem;
+      padding: 22px 24px;
+      text-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+    }
+
+    .lyrics-wrapper.fullscreen .btn-fullscreen {
+      top: 35px;
+      right: 35px;
+      padding: 10px 16px;
+      font-size: 0.9rem;
     }
 
     /* Precise Offset Controls */
@@ -417,9 +485,17 @@
       </div>
     </div>
 
-    <!-- Live Lyrics View -->
-    <div class="lyrics-container" id="lyricsContainer">
-      <div class="lyric-line">Laad een .LRC bestand in om de tekst te zien</div>
+    <!-- Live Lyrics View met Fullscreen Knop -->
+    <div class="lyrics-wrapper" id="lyricsWrapper">
+      <button class="btn-fullscreen" id="fullscreenBtn" onclick="toggleFullscreen()">
+        <svg id="fullscreenIcon" width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+        </svg>
+        <span id="fullscreenText">Volledig scherm</span>
+      </button>
+      <div class="lyrics-container" id="lyricsContainer">
+        <div class="lyric-line">Laad een .LRC bestand in om de tekst te zien</div>
+      </div>
     </div>
 
     <!-- Tienden van Seconden Regelaar -->
@@ -530,6 +606,9 @@
     const currentTimeEl = document.getElementById('currentTime');
     const durationTimeEl = document.getElementById('durationTime');
     const lyricsContainer = document.getElementById('lyricsContainer');
+    const lyricsWrapper = document.getElementById('lyricsWrapper');
+    const fullscreenText = document.getElementById('fullscreenText');
+    const fullscreenIcon = document.getElementById('fullscreenIcon');
     const offsetDisplay = document.getElementById('offsetDisplay');
     const offsetSlider = document.getElementById('offsetSlider');
 
@@ -561,6 +640,52 @@
       const m = Math.floor(sec / 60);
       const s = Math.floor(sec % 60);
       return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+
+    /* Fullscreen functionaliteit */
+    function toggleFullscreen() {
+      if (!document.fullscreenElement && !lyricsWrapper.classList.contains('fullscreen')) {
+        if (lyricsWrapper.requestFullscreen) {
+          lyricsWrapper.requestFullscreen().catch(() => {
+            // Fallback voor browsers die native API weigeren
+            lyricsWrapper.classList.add('fullscreen');
+          });
+        } else {
+          lyricsWrapper.classList.add('fullscreen');
+        }
+        updateFullscreenUI(true);
+      } else {
+        if (document.exitFullscreen && document.fullscreenElement) {
+          document.exitFullscreen();
+        }
+        lyricsWrapper.classList.remove('fullscreen');
+        updateFullscreenUI(false);
+      }
+    }
+
+    document.addEventListener('fullscreenchange', () => {
+      if (!document.fullscreenElement) {
+        lyricsWrapper.classList.remove('fullscreen');
+        updateFullscreenUI(false);
+      } else {
+        lyricsWrapper.classList.add('fullscreen');
+        updateFullscreenUI(true);
+      }
+    });
+
+    function updateFullscreenUI(isFullscreen) {
+      if (isFullscreen) {
+        fullscreenText.textContent = "Sluiten";
+        fullscreenIcon.innerHTML = '<path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>';
+      } else {
+        fullscreenText.textContent = "Volledig scherm";
+        fullscreenIcon.innerHTML = '<path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>';
+      }
+      // Herbereken scroll positie direct na wissel
+      if (activeLineIndex !== -1) {
+        const activeEl = document.getElementById(`line-${activeLineIndex}`);
+        if (activeEl) activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
     }
 
     musicInput.addEventListener('change', async (e) => {
