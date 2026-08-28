@@ -6,10 +6,8 @@
   <meta name="theme-color" content="#0f172a">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Karaoke Two-Track Player + Synced Lyrics</title>
+  <title>Karaoke Two-Track Player + Word Sync</title>
   
-  <link rel="manifest" href='data:application/manifest+json,{"name":"Karaoke Duo Player","short_name":"Karaoke","start_url":"./index.html","display":"standalone","background_color":"#0f172a","theme_color":"#0f172a","icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 512 512\"><rect width=\"512\" height=\"512\" rx=\"100\" fill=\"%236366f1\"/><path d=\"M256 120a64 64 0 00-64 64v112a64 64 0 00128 0V184a64 64 0 00-64-64zm104 112a8 8 0 00-16 0 88 88 0 01-176 0 8 8 0 00-16 0 104 104 0 0096 103.4V384h-40a8 8 0 000 16h96a8 8 0 000-16h-40v-48.6A104 104 0 00360 232z\" fill=\"white\"/></svg>","sizes":"512x512","type":"image/svg+xml"}]}'>
-
   <style>
     :root {
       --bg-main: #0f172a;
@@ -144,7 +142,7 @@
       background: rgba(15, 23, 42, 0.8);
       border: 1px solid var(--border-color);
       border-radius: 12px;
-      height: 160px;
+      height: 180px;
       overflow-y: auto;
       padding: 60px 16px;
       margin-bottom: 20px;
@@ -154,13 +152,14 @@
     }
 
     .lyric-line {
-      padding: 8px 12px;
+      padding: 10px 12px;
       font-size: 0.95rem;
       color: var(--text-muted);
       border-radius: 8px;
       cursor: pointer;
-      transition: all 0.25s ease;
-      margin-bottom: 4px;
+      transition: all 0.2s ease;
+      margin-bottom: 6px;
+      line-height: 1.4;
     }
 
     .lyric-line:hover {
@@ -170,11 +169,22 @@
 
     .lyric-line.active {
       font-size: 1.15rem;
-      font-weight: 700;
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.25) 0%, rgba(236, 72, 153, 0.25) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    /* Word level styling */
+    .word {
+      display: inline-block;
+      margin-right: 4px;
+      transition: color 0.15s ease, transform 0.15s ease;
+    }
+
+    .word.sung {
       color: #ffffff;
-      background: linear-gradient(135deg, rgba(99, 102, 241, 0.3) 0%, rgba(236, 72, 153, 0.3) 100%);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      text-shadow: 0 2px 10px rgba(99, 102, 241, 0.5);
+      font-weight: 700;
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
+      transform: scale(1.05);
     }
 
     .progress-section {
@@ -325,43 +335,15 @@
       font-size: 0.75rem;
       color: var(--text-muted);
     }
-
-    .pwa-banner {
-      display: none;
-      background: rgba(99, 102, 241, 0.15);
-      border: 1px solid rgba(99, 102, 241, 0.3);
-      border-radius: 10px;
-      padding: 10px 14px;
-      margin-bottom: 20px;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 0.8rem;
-    }
-
-    .btn-install {
-      background: var(--primary);
-      color: white;
-      border: none;
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-weight: 600;
-      font-size: 0.75rem;
-      cursor: pointer;
-    }
   </style>
 </head>
 <body>
 
   <div class="container">
     
-    <div id="pwaBanner" class="pwa-banner">
-      <span>Installeer als App op je telefoon</span>
-      <button id="installBtn" class="btn-install">Installeren</button>
-    </div>
-
     <header>
       <h1>Karaoke Duo Player</h1>
-      <p>Mix je 2 sporen & zing mee met synchrone tekst</p>
+      <p>Woord-voor-woord synchronisatie</p>
     </header>
 
     <div class="file-inputs">
@@ -395,7 +377,7 @@
 
     <!-- Live Lyrics View -->
     <div class="lyrics-container" id="lyricsContainer">
-      <div class="lyric-line">Laad een .LRC bestand in om de tekst synchroon mee te laten lopen</div>
+      <div class="lyric-line">Laad een .LRC bestand in om de tekst te zien</div>
     </div>
 
     <div class="progress-section">
@@ -466,8 +448,8 @@
     let pauseOffset = 0;
     let animFrame = null;
 
-    let lyricsData = []; // Array of { time: seconds, text: string }
-    let activeLyricIndex = -1;
+    let lyricsData = []; 
+    let activeLineIndex = -1;
 
     const musicInput = document.getElementById('musicInput');
     const vocalInput = document.getElementById('vocalInput');
@@ -517,68 +499,88 @@
     musicInput.addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
-      
       document.getElementById('musicName').textContent = file.name;
       document.getElementById('musicCard').classList.add('loaded');
-      statusBar.textContent = "Muziekspoor wordt geladen...";
-      
       try {
         musicBuffer = await decodeAudioFile(file);
-        statusBar.textContent = "Muziek geladen!";
         checkReady();
-      } catch (err) {
-        statusBar.textContent = "Fout bij laden van muziek-bestand.";
-      }
+      } catch (err) { statusBar.textContent = "Fout bij laden van muziek."; }
     });
 
     vocalInput.addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
-
       document.getElementById('vocalName').textContent = file.name;
       document.getElementById('vocalCard').classList.add('loaded');
-      statusBar.textContent = "Zangspoor wordt geladen...";
-
       try {
         vocalBuffer = await decodeAudioFile(file);
-        statusBar.textContent = "Zang geladen!";
         checkReady();
-      } catch (err) {
-        statusBar.textContent = "Fout bij laden van zang-bestand.";
-      }
+      } catch (err) { statusBar.textContent = "Fout bij laden van zang."; }
     });
 
-    // LRC Parser & Uploader
     lrcInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
-
       document.getElementById('lrcName').textContent = file.name;
       document.getElementById('lrcCard').classList.add('loaded');
 
       const reader = new FileReader();
-      reader.onload = (event) => {
-        parseLRC(event.target.result);
-      };
+      reader.onload = (event) => { parseLRC(event.target.result); };
       reader.readAsText(file);
     });
 
+    // Advanced Enhanced LRC Parser supporting word-level timestamps
     function parseLRC(lrcText) {
       lyricsData = [];
       const lines = lrcText.split('\n');
-      const timeRegex = /\[(\d{2}):(\d{2})\.(\d{2,3})\]/;
+      const lineTimeRegex = /^\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)$/;
+      const wordTimeRegex = /\[(\d{2}):(\d{2})\.(\d{2,3})\]([^\[]+)/g;
 
       lines.forEach(line => {
-        const match = timeRegex.exec(line);
-        if (match) {
-          const minutes = parseInt(match[1], 10);
-          const seconds = parseInt(match[2], 10);
-          const millis = parseInt(match[3].padEnd(3, '0'), 10);
-          const totalSeconds = minutes * 60 + seconds + millis / 1000;
-          const text = line.replace(timeRegex, '').trim();
+        const lineMatch = lineTimeRegex.exec(line);
+        if (lineMatch) {
+          const lineMin = parseInt(lineMatch[1], 10);
+          const lineSec = parseInt(lineMatch[2], 10);
+          const lineMs = parseInt(lineMatch[3].padEnd(3, '0'), 10);
+          const lineTime = lineMin * 60 + lineSec + lineMs / 1000;
+          
+          let content = lineMatch[4];
+          let words = [];
+          
+          // Check if it contains word-level tags
+          let match;
+          let lastIdx = 0;
+          
+          // Try parsing enhanced tags inside the line
+          const enhancedRegex = /\[(\d{2}):(\d{2})\.(\d{2,3})\]([^\[]+)/g;
+          let hasWords = false;
+          
+          while ((match = enhancedRegex.exec(content)) !== null) {
+            hasWords = true;
+            const wMin = parseInt(match[1], 10);
+            const wSec = parseInt(match[2], 10);
+            const wMs = parseInt(match[3].padEnd(3, '0'), 10);
+            const wTime = wMin * 60 + wSec + wMs / 1000;
+            const wText = match[4].trim();
+            if (wText) {
+              words.push({ time: wTime, text: wText });
+            }
+          }
 
-          if (text) {
-            lyricsData.push({ time: totalSeconds, text: text });
+          // Fallback: If no word tags exist, split the line text into words and distribute time evenly
+          if (!hasWords) {
+            const cleanText = content.replace(/\[.*?\]/g, '').trim();
+            if (cleanText) {
+              const splitWords = cleanText.split(/\s+/);
+              const durationPerWord = 0.4; // estimated seconds per word if not specified
+              splitWords.forEach((w, idx) => {
+                words.push({ time: lineTime + (idx * durationPerWord), text: w });
+              });
+            }
+          }
+
+          if (words.length > 0) {
+            lyricsData.push({ time: lineTime, words: words });
           }
         }
       });
@@ -590,17 +592,25 @@
     function renderLyrics() {
       lyricsContainer.innerHTML = '';
       if (lyricsData.length === 0) {
-        lyricsContainer.innerHTML = '<div class="lyric-line">Geen geldige tekst gevonden in .LRC bestand</div>';
+        lyricsContainer.innerHTML = '<div class="lyric-line">Geen geldige tekst gevonden</div>';
         return;
       }
 
-      lyricsData.forEach((item, index) => {
+      lyricsData.forEach((line, lineIndex) => {
         const div = document.createElement('div');
         div.className = 'lyric-line';
-        div.id = `lyric-${index}`;
-        div.textContent = item.text;
+        div.id = `line-${lineIndex}`;
+
+        line.words.forEach((wordObj, wordIndex) => {
+          const span = document.createElement('span');
+          span.className = 'word';
+          span.id = `word-${lineIndex}-${wordIndex}`;
+          span.textContent = wordObj.text + " ";
+          div.appendChild(span);
+        });
+
         div.addEventListener('click', () => {
-          seekToTime(item.time);
+          seekToTime(line.time);
         });
         lyricsContainer.appendChild(div);
       });
@@ -609,30 +619,44 @@
     function updateLyricsDisplay(currentPos) {
       if (lyricsData.length === 0) return;
 
-      let newIndex = -1;
+      // Find active line
+      let newLineIndex = -1;
       for (let i = 0; i < lyricsData.length; i++) {
-        if (currentPos >= lyricsData[i].time) {
-          newIndex = i;
+        if (currentPos >= lyricsData[i].time - 0.2) {
+          newLineIndex = i;
         } else {
           break;
         }
       }
 
-      if (newIndex !== activeLyricIndex) {
-        if (activeLyricIndex !== -1) {
-          const prevEl = document.getElementById(`lyric-${activeLyricIndex}`);
+      if (newLineIndex !== activeLineIndex) {
+        if (activeLineIndex !== -1) {
+          const prevEl = document.getElementById(`line-${activeLineIndex}`);
           if (prevEl) prevEl.classList.remove('active');
         }
-
-        if (newIndex !== -1) {
-          const newEl = document.getElementById(`lyric-${newIndex}`);
+        if (newLineIndex !== -1) {
+          const newEl = document.getElementById(`line-${newLineIndex}`);
           if (newEl) {
             newEl.classList.add('active');
             newEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
           }
         }
-        activeLyricIndex = newIndex;
+        activeLineIndex = newLineIndex;
       }
+
+      // Update word-level highlighting across all loaded lines
+      lyricsData.forEach((line, lIdx) => {
+        line.words.forEach((word, wIdx) => {
+          const wordEl = document.getElementById(`word-${lIdx}-${wIdx}`);
+          if (!wordEl) return;
+
+          if (currentPos >= word.time) {
+            wordEl.classList.add('sung');
+          } else {
+            wordEl.classList.remove('sung');
+          }
+        });
+      });
     }
 
     function checkReady() {
@@ -648,10 +672,7 @@
 
     function startAudio(offset = 0) {
       initAudio();
-      if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
-      }
-
+      if (audioCtx.state === 'suspended') { audioCtx.resume(); }
       stopAudioSources();
 
       const startTimestamp = audioCtx.currentTime + 0.05;
@@ -674,13 +695,11 @@
       isPlaying = true;
       playBtn.innerHTML = `<svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg> Pauze`;
       statusBar.textContent = "Speelt af...";
-
       updateProgress();
     }
 
     function updateProgress() {
       if (!isPlaying) return;
-
       const currentPos = audioCtx.currentTime - startTime;
       const totalDur = getMaxDuration();
 
@@ -723,12 +742,6 @@
       currentTimeEl.textContent = "00:00";
       playBtn.innerHTML = `<svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> Afspelen`;
       statusBar.textContent = "Gestopt.";
-
-      if (activeLyricIndex !== -1) {
-        const el = document.getElementById(`lyric-${activeLyricIndex}`);
-        if (el) el.classList.remove('active');
-        activeLyricIndex = -1;
-      }
     }
 
     stopBtn.addEventListener('click', stopAudio);
@@ -754,69 +767,25 @@
     seekSlider.addEventListener('change', (e) => {
       const totalDur = getMaxDuration();
       pauseOffset = (e.target.value / 100) * totalDur;
-
-      if (isPlaying) {
-        startAudio(pauseOffset);
-      }
+      if (isPlaying) { startAudio(pauseOffset); }
     });
 
-    vocalVol.addEventListener('input', (e) => {
-      applyVocalVolume(parseFloat(e.target.value));
-    });
-
+    vocalVol.addEventListener('input', (e) => { applyVocalVolume(parseFloat(e.target.value)); });
     musicVol.addEventListener('input', (e) => {
       const val = parseFloat(e.target.value);
-      if (musicGainNode) {
-        musicGainNode.gain.setValueAtTime(val, audioCtx.currentTime);
-      }
+      if (musicGainNode) { musicGainNode.gain.setValueAtTime(val, audioCtx.currentTime); }
       musicVolVal.textContent = Math.round(val * 100) + '%';
     });
 
     function applyVocalVolume(val) {
-      if (vocalGainNode) {
-        vocalGainNode.gain.setValueAtTime(val, audioCtx.currentTime);
-      }
+      if (vocalGainNode) { vocalGainNode.gain.setValueAtTime(val, audioCtx.currentTime); }
       vocalVol.value = val;
       vocalVolVal.textContent = Math.round(val * 100) + '%';
-      
       document.querySelectorAll('.presets .btn-preset').forEach(btn => btn.classList.remove('active'));
-      if (val === 0) {
-        document.getElementById('vocalMuteBtn').classList.add('active');
-      }
+      if (val === 0) { document.getElementById('vocalMuteBtn').classList.add('active'); }
     }
 
-    function setVocalPreset(val) {
-      applyVocalVolume(val);
-    }
-
-    if ('serviceWorker' in navigator) {
-      const swCode = `
-        self.addEventListener('install', e => self.skipWaiting());
-        self.addEventListener('fetch', e => e.respondWith(fetch(e.request)));
-      `;
-      const blob = new Blob([swCode], { type: 'application/javascript' });
-      navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
-    }
-
-    let deferredPrompt;
-    const pwaBanner = document.getElementById('pwaBanner');
-    const installBtn = document.getElementById('installBtn');
-
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      pwaBanner.style.display = 'flex';
-    });
-
-    installBtn.addEventListener('click', () => {
-      if (deferredPrompt) {
-        deferredPrompt.prompt();
-        deferredPrompt.userChoice.then(() => {
-          pwaBanner.style.display = 'none';
-          deferredPrompt = null;
-        });
-      }
-    });
+    function setVocalPreset(val) { applyVocalVolume(val); }
   </script>
 </body>
 </html>
