@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dual Stream Audio & AI Teleprompter</title>
+  <title>Audio Prompter - Dual Volume Control</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -30,11 +30,46 @@
 
     .audio-box {
       background: #090d16;
-      padding: 12px;
+      padding: 14px;
       border-radius: 8px;
+      border: 1px solid #334155;
     }
 
-    audio { width: 100%; margin-top: 8px; }
+    .audio-box label {
+      display: block;
+      font-weight: bold;
+      color: #38bdf8;
+      margin-bottom: 8px;
+      font-size: 0.95rem;
+    }
+
+    input[type="file"] {
+      width: 100%;
+      margin-bottom: 10px;
+      font-size: 0.85rem;
+      color: #94a3b8;
+    }
+
+    .volume-control {
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #1e293b;
+      padding: 8px 12px;
+      border-radius: 6px;
+    }
+
+    .volume-control label {
+      margin: 0;
+      font-size: 0.85rem;
+      color: #94a3b8;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      cursor: pointer;
+    }
 
     .prompter-container {
       height: 260px;
@@ -42,14 +77,13 @@
       border: 2px solid #334155;
       border-radius: 10px;
       padding: 20px;
-      font-size: 1.3rem;
+      font-size: 1.35rem;
       line-height: 1.8;
       background-color: #090d16;
     }
 
-    /* Zinnen styling */
     .sentence {
-      opacity: 0.25; /* Volgende zinnen zijn lichtgrijs al zichtbaar */
+      opacity: 0.25;
       transition: opacity 0.3s ease, color 0.3s ease;
       display: inline;
     }
@@ -57,7 +91,7 @@
     .sentence.active {
       opacity: 1;
       font-weight: bold;
-      color: #38bdf8; /* Actieve zin lopt blauw op */
+      color: #38bdf8;
     }
 
     .sentence.passed {
@@ -98,66 +132,123 @@
 </head>
 <body>
 
-  <h1>Audio Streams & Synced Prompter</h1>
+  <h1>Audio Streams & Prompter</h1>
 
-  <!-- 1. Twee MP3 Streams -->
+  <!-- 1. Lokale MP3 Bestanden -->
   <div class="card">
-    <h3>1. MP3 Audio Streams</h3>
+    <h3>1. MP3 Streams & Volumeregeling</h3>
     <div class="audio-grid">
+      
+      <!-- Stream A (Geregeld via telefoonknoppen) -->
       <div class="audio-box">
-        <label>Stream A (Spraak / Hoofdaudio)</label>
-        <audio id="audioA" controls crossorigin="anonymous"></audio>
-        <input type="text" id="urlA" placeholder="MP3 Stream A URL..." style="width:100%; margin-top:5px;">
+        <label>🎵 Stream A: Audio / Muziek</label>
+        <input type="file" id="fileA" accept="audio/mp3, audio/*">
+        <p style="font-size: 0.8rem; color: #64748b; margin: 4px 0 0 0;">
+          📱 Volume van A regel je via de fysieke knoppen op je telefoon.
+        </p>
       </div>
+
+      <!-- Stream B (Geregeld via de slider in de app) -->
       <div class="audio-box">
-        <label>Stream B (Achtergrond / Muziek)</label>
-        <audio id="audioB" controls crossorigin="anonymous"></audio>
-        <input type="text" id="urlB" placeholder="MP3 Stream B URL..." style="width:100%; margin-top:5px;">
+        <label>🎤 Stream B: Vocals</label>
+        <input type="file" id="fileB" accept="audio/mp3, audio/*">
+        
+        <div class="volume-control">
+          <label for="volumeB">🎚️ Volume B:</label>
+          <input type="range" id="volumeB" min="0" max="1" step="0.01" value="0.8">
+          <span id="volBValue" style="font-size: 0.85rem; min-width: 35px;">80%</span>
+        </div>
       </div>
     </div>
+
     <div class="btn-group">
-      <button id="loadAudioBtn" class="secondary">Laad MP3's</button>
       <button id="syncPlayBtn" class="success">▶ Synchroon Afspelen</button>
       <button id="syncPauseBtn" class="secondary">⏸ Pauzeer Beide</button>
     </div>
   </div>
 
-  <!-- 2. AI Tekst Opslaan & Laden -->
+  <!-- 2. AI Tekst Genereren & Opslaan -->
   <div class="card">
-    <h3>2. AI Tekst Genereren & Eenmalig Opslaan</h3>
+    <h3>2. Tekst Genereren & Opslaan (.txt)</h3>
     <textarea id="aiText" placeholder="Gegenereerde tekst komt hier..."></textarea>
     <div class="btn-group">
       <button id="generateBtn">🤖 Genereer AI Tekst</button>
-      <button id="saveFileBtn" class="success">💾 Bewaar als .txt Bestand</button>
-      <input type="file" id="loadFileBtn" accept=".txt" style="display:none;">
+      <button id="saveFileBtn" class="success">💾 Bewaar als Tekstbestand (.txt)</button>
+      <input type="file" id="loadTextFileBtn" accept=".txt" style="display:none;">
       <button id="triggerLoadBtn" class="secondary">📁 Opgeslagen Tekst Laden</button>
     </div>
   </div>
 
   <!-- 3. Teleprompter -->
   <div class="card">
-    <h3>3. Meelopende Tekst</h3>
+    <h3>3. Meelopende Tekst (Gesynchroniseerd op Vocals)</h3>
     <div class="prompter-container" id="prompter">
-      <div id="content"><em>Genereer of laad een tekstbestand om te beginnen...</em></div>
+      <div id="content"><em>Kies MP3-bestanden en laad/genereer tekst om te starten...</em></div>
     </div>
   </div>
 
   <script>
-    const audioA = document.getElementById('audioA');
-    const audioB = document.getElementById('audioB');
+    // Audio bestanden en elementen
+    const fileA = document.getElementById('fileA');
+    const fileB = document.getElementById('fileB');
+    const volumeB = document.getElementById('volumeB');
+    const volBValue = document.getElementById('volBValue');
     const aiText = document.getElementById('aiText');
     const content = document.getElementById('content');
+
+    let audioA = new Audio();
+    let audioB = new Audio();
+    let audioCtx = null;
+    let gainNodeB = null;
 
     let sentences = [];
     let activeIndex = 0;
 
-    // 1. Audio Control
-    document.getElementById('loadAudioBtn').addEventListener('click', () => {
-      if (document.getElementById('urlA').value) audioA.src = document.getElementById('urlA').value;
-      if (document.getElementById('urlB').value) audioB.src = document.getElementById('urlB').value;
+    // Initialiseer Web Audio API om het volume van Stream B onafhankelijk te regelen
+    function initAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // Koppel Stream B aan een gain-node (volumeregelaar)
+        const sourceB = audioCtx.createMediaElementSource(audioB);
+        gainNodeB = audioCtx.createGain();
+        gainNodeB.gain.value = volumeB.value;
+        
+        sourceB.connect(gainNodeB);
+        gainNodeB.connect(audioCtx.destination);
+      }
+    }
+
+    // Bestanden inladen
+    fileA.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) audioA.src = URL.createObjectURL(file);
     });
 
+    fileB.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) audioB.src = URL.createObjectURL(file);
+    });
+
+    // App Volume Slider voor Stream B
+    volumeB.addEventListener('input', () => {
+      const val = parseFloat(volumeB.value);
+      volBValue.innerText = Math.round(val * 100) + '%';
+      
+      // Als Web Audio API draait, pas de gainNode aan, anders fallback naar element volume
+      if (gainNodeB) {
+        gainNodeB.gain.value = val;
+      } else {
+        audioB.volume = val;
+      }
+    });
+
+    // Synchroon Afspelen & Pauzeren
     document.getElementById('syncPlayBtn').addEventListener('click', () => {
+      initAudioContext();
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
       audioA.play();
       audioB.play();
     });
@@ -167,18 +258,17 @@
       audioB.pause();
     });
 
-    // 2. Simuleer AI generatie (of koppel hier je OpenAI API fetch aan)
+    // AI Tekst generatie simulatie
     document.getElementById('generateBtn').addEventListener('click', () => {
-      const generated = "Dit is het eerste gedeelte van de tegen de AI gevraagde tekst. " +
-        "De app bewaart dit bestand zodat je het later gratis hergebruikt. " +
-        "Terwijl Stream A en Stream B lopen, scrolt de tekst synchroon mee. " +
-        "De volgende zin staat telkens alvast zichtbaar in het lichtgrijs onderaan.";
+      const generated = "Dit is de zangtekst die bij het lokale nummer hoort. " +
+        "Sla dit bestand op zodat je het niet elke keer opnieuw hoeft te genereren. " +
+        "Het volume van Stream A regel je nu direct via je mobiele telefoon. " +
+        "Stream B kun je naar wens harder of zachter zetten met de slider in de app.";
       
       aiText.value = generated;
       preparePrompter(generated);
     });
 
-    // Verwerk tekst in zinnen
     function preparePrompter(text) {
       sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
       content.innerHTML = sentences
@@ -187,22 +277,21 @@
       activeIndex = 0;
     }
 
-    // Tekst opslaan als .txt bestand
+    // Bewaren en laden van tekstbestanden
     document.getElementById('saveFileBtn').addEventListener('click', () => {
       const textToSave = aiText.value;
-      if (!textToSave) return alert("Er is nog geen tekst om op te slaan!");
+      if (!textToSave) return alert("Er is geen tekst om op te slaan!");
       
       const blob = new Blob([textToSave], { type: 'text/plain;charset=utf-8' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = 'mijn_ai_tekst.txt';
+      a.download = 'zangtekst.txt';
       a.click();
       URL.revokeObjectURL(a.href);
     });
 
-    // Opgeslagen .txt bestand inlezen
-    document.getElementById('triggerLoadBtn').addEventListener('click', () => document.getElementById('loadFileBtn').click());
-    document.getElementById('loadFileBtn').addEventListener('change', (e) => {
+    document.getElementById('triggerLoadBtn').addEventListener('click', () => document.getElementById('loadTextFileBtn').click());
+    document.getElementById('loadTextFileBtn').addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
       const reader = new FileReader();
@@ -213,11 +302,11 @@
       reader.readAsText(file);
     });
 
-    // 3. Meescrollen op basis van de MP3 tijdsduur (Stream A)
-    audioA.addEventListener('timeupdate', () => {
-      if (!sentences.length || !audioA.duration) return;
+    // Sync Prompter op basis van Stream B (Vocals)
+    audioB.addEventListener('timeupdate', () => {
+      if (!sentences.length || !audioB.duration) return;
 
-      const progress = audioA.currentTime / audioA.duration;
+      const progress = audioB.currentTime / audioB.duration;
       const targetIndex = Math.min(Math.floor(progress * sentences.length), sentences.length - 1);
 
       if (targetIndex !== activeIndex) {
