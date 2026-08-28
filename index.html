@@ -2,323 +2,571 @@
 <html lang="nl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Audio Prompter - Dual Volume Control</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Karaoke Two-Track Player</title>
+  
+  <link rel="manifest" href='data:application/manifest+json,{"name":"Karaoke Duo Player","short_name":"Karaoke","start_url":"./index.html","display":"standalone","background_color":"#0f172a","theme_color":"#0f172a","icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 512 512\"><rect width=\"512\" height=\"512\" rx=\"100\" fill=\"%236366f1\"/><path d=\"M256 120a64 64 0 00-64 64v112a64 64 0 00128 0V184a64 64 0 00-64-64zm104 112a8 8 0 00-16 0 88 88 0 01-176 0 8 8 0 00-16 0 104 104 0 0096 103.4V384h-40a8 8 0 000 16h96a8 8 0 000-16h-40v-48.6A104 104 0 00360 232z\" fill=\"white\"/></svg>","sizes":"512x512","type":"image/svg+xml"}]}'>
+
   <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: #0f172a;
-      color: #f8fafc;
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 24px;
+    :root {
+      --bg-main: #0f172a;
+      --card-bg: rgba(30, 41, 59, 0.7);
+      --primary: #6366f1;
+      --accent-vocal: #ec4899;
+      --accent-music: #06b6d4;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --border-color: rgba(255, 255, 255, 0.1);
+      --radius: 16px;
     }
 
-    .card {
-      background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 12px;
-      padding: 20px;
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px 16px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 480px;
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+
+    header {
+      text-align: center;
       margin-bottom: 24px;
     }
 
-    .audio-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
+    header h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      background: linear-gradient(to right, #818cf8, #c084fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 6px;
     }
 
-    .audio-box {
-      background: #090d16;
-      padding: 14px;
-      border-radius: 8px;
-      border: 1px solid #334155;
+    header p {
+      font-size: 0.875rem;
+      color: var(--text-muted);
     }
 
-    .audio-box label {
-      display: block;
-      font-weight: bold;
-      color: #38bdf8;
-      margin-bottom: 8px;
-      font-size: 0.95rem;
+    .file-inputs {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-bottom: 24px;
     }
 
-    input[type="file"] {
-      width: 100%;
-      margin-bottom: 10px;
-      font-size: 0.85rem;
-      color: #94a3b8;
-    }
-
-    .volume-control {
-      margin-top: 10px;
+    .file-card {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px dashed var(--border-color);
+      border-radius: 12px;
+      padding: 12px 16px;
       display: flex;
       align-items: center;
-      gap: 10px;
-      background: #1e293b;
-      padding: 8px 12px;
-      border-radius: 6px;
+      justify-content: space-between;
     }
 
-    .volume-control label {
-      margin: 0;
+    .file-card.loaded {
+      border-style: solid;
+      border-color: var(--primary);
+      background: rgba(99, 102, 241, 0.1);
+    }
+
+    .file-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      overflow: hidden;
+      padding-right: 10px;
+    }
+
+    .file-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+    }
+
+    .file-label.music { color: var(--accent-music); }
+    .file-label.vocal { color: var(--accent-vocal); }
+
+    .file-name {
+      font-size: 0.875rem;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .btn-file {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    input[type="file"] { display: none; }
+
+    .controls-main {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    .btn-action {
+      flex: 1;
+      padding: 14px;
+      border-radius: 12px;
+      border: none;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-play {
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+    }
+
+    .btn-play:disabled {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-muted);
+      box-shadow: none;
+      cursor: not-allowed;
+    }
+
+    .btn-stop {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-stop:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .mixer-section {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .channel {
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 12px;
+      padding: 16px;
+      border: 1px solid var(--border-color);
+    }
+
+    .channel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .channel-title {
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+
+    .channel-val {
       font-size: 0.85rem;
-      color: #94a3b8;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .slider-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      margin-bottom: 12px;
     }
 
     input[type="range"] {
-      flex: 1;
+      -webkit-appearance: none;
+      width: 100%;
+      height: 8px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.15);
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #ffffff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
       cursor: pointer;
     }
 
-    .prompter-container {
-      height: 260px;
-      overflow-y: auto;
-      border: 2px solid #334155;
-      border-radius: 10px;
-      padding: 20px;
-      font-size: 1.35rem;
-      line-height: 1.8;
-      background-color: #090d16;
-    }
-
-    .sentence {
-      opacity: 0.25;
-      transition: opacity 0.3s ease, color 0.3s ease;
-      display: inline;
-    }
-
-    .sentence.active {
-      opacity: 1;
-      font-weight: bold;
-      color: #38bdf8;
-    }
-
-    .sentence.passed {
-      opacity: 0.5;
-      color: #94a3b8;
-    }
-
-    .btn-group {
+    .presets {
       display: flex;
-      gap: 10px;
-      margin-top: 14px;
-      flex-wrap: wrap;
+      gap: 8px;
     }
 
-    button {
-      background-color: #0066cc;
+    .btn-preset {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      padding: 6px 0;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-preset.active {
+      background: rgba(255, 255, 255, 0.15);
+      color: var(--text-main);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .btn-preset.mute.active {
+      background: rgba(239, 68, 68, 0.2);
+      color: #fca5a5;
+      border-color: rgba(239, 68, 68, 0.4);
+    }
+
+    .status-bar {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .pwa-banner {
+      display: none;
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      border-radius: 10px;
+      padding: 10px 14px;
+      margin-bottom: 20px;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.8rem;
+    }
+
+    .btn-install {
+      background: var(--primary);
       color: white;
       border: none;
-      padding: 10px 16px;
+      padding: 6px 12px;
       border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.75rem;
       cursor: pointer;
-      font-weight: bold;
-    }
-
-    button.success { background-color: #10b981; }
-    button.secondary { background-color: #475569; }
-
-    textarea {
-      width: 100%;
-      height: 80px;
-      background: #090d16;
-      border: 1px solid #334155;
-      color: #fff;
-      padding: 10px;
-      border-radius: 6px;
     }
   </style>
 </head>
 <body>
 
-  <h1>Audio Streams & Prompter</h1>
+  <div class="container">
+    
+    <div id="pwaBanner" class="pwa-banner">
+      <span>Installeer als App op je telefoon</span>
+      <button id="installBtn" class="btn-install">Installeren</button>
+    </div>
 
-  <!-- 1. Lokale MP3 Bestanden -->
-  <div class="card">
-    <h3>1. MP3 Streams & Volumeregeling</h3>
-    <div class="audio-grid">
-      
-      <!-- Stream A (Geregeld via telefoonknoppen) -->
-      <div class="audio-box">
-        <label>🎵 Stream A: Audio / Muziek</label>
-        <input type="file" id="fileA" accept="audio/mp3, audio/*">
-        <p style="font-size: 0.8rem; color: #64748b; margin: 4px 0 0 0;">
-          📱 Volume van A regel je via de fysieke knoppen op je telefoon.
-        </p>
+    <header>
+      <h1>Karaoke Duo Player</h1>
+      <p>Laad je 2 MP3-sporen in & mix je zang live</p>
+    </header>
+
+    <div class="file-inputs">
+      <div class="file-card" id="musicCard">
+        <div class="file-info">
+          <span class="file-label music">Muziek Spoor</span>
+          <span class="file-name" id="musicName">Geen bestand gekozen</span>
+        </div>
+        <button class="btn-file" onclick="document.getElementById('musicInput').click()">Kiezen</button>
+        <input type="file" id="musicInput" accept="audio/*">
       </div>
 
-      <!-- Stream B (Geregeld via de slider in de app) -->
-      <div class="audio-box">
-        <label>🎤 Stream B: Vocals</label>
-        <input type="file" id="fileB" accept="audio/mp3, audio/*">
-        
-        <div class="volume-control">
-          <label for="volumeB">🎚️ Volume B:</label>
-          <input type="range" id="volumeB" min="0" max="1" step="0.01" value="0.8">
-          <span id="volBValue" style="font-size: 0.85rem; min-width: 35px;">80%</span>
+      <div class="file-card" id="vocalCard">
+        <div class="file-info">
+          <span class="file-label vocal">Zang Spoor</span>
+          <span class="file-name" id="vocalName">Geen bestand gekozen</span>
+        </div>
+        <button class="btn-file" onclick="document.getElementById('vocalInput').click()">Kiezen</button>
+        <input type="file" id="vocalInput" accept="audio/*">
+      </div>
+    </div>
+
+    <div class="controls-main">
+      <button id="playBtn" class="btn-action btn-play" disabled>
+        <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        Afspelen
+      </button>
+      <button id="stopBtn" class="btn-action btn-stop" disabled>
+        <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>
+        Stop
+      </button>
+    </div>
+
+    <div class="mixer-section">
+      <div class="channel">
+        <div class="channel-header">
+          <span class="channel-title" style="color: var(--accent-vocal);">🎤 Zang Volume</span>
+          <span class="channel-val" id="vocalVolVal">100%</span>
+        </div>
+        <div class="slider-wrapper">
+          <input type="range" id="vocalVol" min="0" max="1" step="0.01" value="1">
+        </div>
+        <div class="presets">
+          <button class="btn-preset mute" id="vocalMuteBtn" onclick="setVocalPreset(0)">Mute</button>
+          <button class="btn-preset" onclick="setVocalPreset(0.3)">30%</button>
+          <button class="btn-preset" onclick="setVocalPreset(0.7)">70%</button>
+          <button class="btn-preset active" onclick="setVocalPreset(1.0)">100%</button>
+        </div>
+      </div>
+
+      <div class="channel">
+        <div class="channel-header">
+          <span class="channel-title" style="color: var(--accent-music);">🎵 Muziek Volume</span>
+          <span class="channel-val" id="musicVolVal">100%</span>
+        </div>
+        <div class="slider-wrapper">
+          <input type="range" id="musicVol" min="0" max="1" step="0.01" value="1">
         </div>
       </div>
     </div>
 
-    <div class="btn-group">
-      <button id="syncPlayBtn" class="success">▶ Synchroon Afspelen</button>
-      <button id="syncPauseBtn" class="secondary">⏸ Pauzeer Beide</button>
+    <div class="status-bar" id="statusBar">
+      Kies 2 MP3 sporen om te beginnen
     </div>
-  </div>
 
-  <!-- 2. AI Tekst Genereren & Opslaan -->
-  <div class="card">
-    <h3>2. Tekst Genereren & Opslaan (.txt)</h3>
-    <textarea id="aiText" placeholder="Gegenereerde tekst komt hier..."></textarea>
-    <div class="btn-group">
-      <button id="generateBtn">🤖 Genereer AI Tekst</button>
-      <button id="saveFileBtn" class="success">💾 Bewaar als Tekstbestand (.txt)</button>
-      <input type="file" id="loadTextFileBtn" accept=".txt" style="display:none;">
-      <button id="triggerLoadBtn" class="secondary">📁 Opgeslagen Tekst Laden</button>
-    </div>
-  </div>
-
-  <!-- 3. Teleprompter -->
-  <div class="card">
-    <h3>3. Meelopende Tekst (Gesynchroniseerd op Vocals)</h3>
-    <div class="prompter-container" id="prompter">
-      <div id="content"><em>Kies MP3-bestanden en laad/genereer tekst om te starten...</em></div>
-    </div>
   </div>
 
   <script>
-    // Audio bestanden en elementen
-    const fileA = document.getElementById('fileA');
-    const fileB = document.getElementById('fileB');
-    const volumeB = document.getElementById('volumeB');
-    const volBValue = document.getElementById('volBValue');
-    const aiText = document.getElementById('aiText');
-    const content = document.getElementById('content');
-
-    let audioA = new Audio();
-    let audioB = new Audio();
     let audioCtx = null;
-    let gainNodeB = null;
+    let musicBuffer = null;
+    let vocalBuffer = null;
+    let musicSource = null;
+    let vocalSource = null;
 
-    let sentences = [];
-    let activeIndex = 0;
+    let musicGainNode = null;
+    let vocalGainNode = null;
 
-    // Initialiseer Web Audio API om het volume van Stream B onafhankelijk te regelen
-    function initAudioContext() {
+    let isPlaying = false;
+
+    const musicInput = document.getElementById('musicInput');
+    const vocalInput = document.getElementById('vocalInput');
+    const playBtn = document.getElementById('playBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const musicVol = document.getElementById('musicVol');
+    const vocalVol = document.getElementById('vocalVol');
+    const musicVolVal = document.getElementById('musicVolVal');
+    const vocalVolVal = document.getElementById('vocalVolVal');
+    const statusBar = document.getElementById('statusBar');
+
+    function initAudio() {
       if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        
-        // Koppel Stream B aan een gain-node (volumeregelaar)
-        const sourceB = audioCtx.createMediaElementSource(audioB);
-        gainNodeB = audioCtx.createGain();
-        gainNodeB.gain.value = volumeB.value;
-        
-        sourceB.connect(gainNodeB);
-        gainNodeB.connect(audioCtx.destination);
+        musicGainNode = audioCtx.createGain();
+        vocalGainNode = audioCtx.createGain();
+
+        musicGainNode.connect(audioCtx.destination);
+        vocalGainNode.connect(audioCtx.destination);
       }
     }
 
-    // Bestanden inladen
-    fileA.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (file) audioA.src = URL.createObjectURL(file);
-    });
-
-    fileB.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (file) audioB.src = URL.createObjectURL(file);
-    });
-
-    // App Volume Slider voor Stream B
-    volumeB.addEventListener('input', () => {
-      const val = parseFloat(volumeB.value);
-      volBValue.innerText = Math.round(val * 100) + '%';
-      
-      // Als Web Audio API draait, pas de gainNode aan, anders fallback naar element volume
-      if (gainNodeB) {
-        gainNodeB.gain.value = val;
-      } else {
-        audioB.volume = val;
-      }
-    });
-
-    // Synchroon Afspelen & Pauzeren
-    document.getElementById('syncPlayBtn').addEventListener('click', () => {
-      initAudioContext();
-      if (audioCtx && audioCtx.state === 'suspended') {
-        audioCtx.resume();
-      }
-      audioA.play();
-      audioB.play();
-    });
-
-    document.getElementById('syncPauseBtn').addEventListener('click', () => {
-      audioA.pause();
-      audioB.pause();
-    });
-
-    // AI Tekst generatie simulatie
-    document.getElementById('generateBtn').addEventListener('click', () => {
-      const generated = "Dit is de zangtekst die bij het lokale nummer hoort. " +
-        "Sla dit bestand op zodat je het niet elke keer opnieuw hoeft te genereren. " +
-        "Het volume van Stream A regel je nu direct via je mobiele telefoon. " +
-        "Stream B kun je naar wens harder of zachter zetten met de slider in de app.";
-      
-      aiText.value = generated;
-      preparePrompter(generated);
-    });
-
-    function preparePrompter(text) {
-      sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
-      content.innerHTML = sentences
-        .map((s, index) => `<span class="sentence ${index === 0 ? 'active' : ''}" id="s-${index}">${s.trim()} </span>`)
-        .join('');
-      activeIndex = 0;
+    async function decodeAudioFile(file) {
+      initAudio();
+      const arrayBuffer = await file.arrayBuffer();
+      return await audioCtx.decodeAudioData(arrayBuffer);
     }
 
-    // Bewaren en laden van tekstbestanden
-    document.getElementById('saveFileBtn').addEventListener('click', () => {
-      const textToSave = aiText.value;
-      if (!textToSave) return alert("Er is geen tekst om op te slaan!");
-      
-      const blob = new Blob([textToSave], { type: 'text/plain;charset=utf-8' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'zangtekst.txt';
-      a.click();
-      URL.revokeObjectURL(a.href);
-    });
-
-    document.getElementById('triggerLoadBtn').addEventListener('click', () => document.getElementById('loadTextFileBtn').click());
-    document.getElementById('loadTextFileBtn').addEventListener('change', (e) => {
+    musicInput.addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        aiText.value = evt.target.result;
-        preparePrompter(evt.target.result);
-      };
-      reader.readAsText(file);
+      
+      document.getElementById('musicName').textContent = file.name;
+      document.getElementById('musicCard').classList.add('loaded');
+      statusBar.textContent = "Muziekspoor wordt geladen...";
+      
+      try {
+        musicBuffer = await decodeAudioFile(file);
+        statusBar.textContent = "Muziek geladen!";
+        checkReady();
+      } catch (err) {
+        statusBar.textContent = "Fout bij laden van muziek-bestand.";
+      }
     });
 
-    // Sync Prompter op basis van Stream B (Vocals)
-    audioB.addEventListener('timeupdate', () => {
-      if (!sentences.length || !audioB.duration) return;
+    vocalInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
 
-      const progress = audioB.currentTime / audioB.duration;
-      const targetIndex = Math.min(Math.floor(progress * sentences.length), sentences.length - 1);
+      document.getElementById('vocalName').textContent = file.name;
+      document.getElementById('vocalCard').classList.add('loaded');
+      statusBar.textContent = "Zangspoor wordt geladen...";
 
-      if (targetIndex !== activeIndex) {
-        activeIndex = targetIndex;
-        document.querySelectorAll('.sentence').forEach((el, idx) => {
-          if (idx < activeIndex) el.className = 'sentence passed';
-          else if (idx === activeIndex) {
-            el.className = 'sentence active';
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          } else {
-            el.className = 'sentence';
-          }
+      try {
+        vocalBuffer = await decodeAudioFile(file);
+        statusBar.textContent = "Zang geladen!";
+        checkReady();
+      } catch (err) {
+        statusBar.textContent = "Fout bij laden van zang-bestand.";
+      }
+    });
+
+    function checkReady() {
+      if (musicBuffer && vocalBuffer) {
+        playBtn.disabled = false;
+        stopBtn.disabled = false;
+        statusBar.textContent = "Klaar om af te spelen!";
+      } else if (musicBuffer) {
+        statusBar.textContent = "Upload nu nog het zangspoor.";
+      } else if (vocalBuffer) {
+        statusBar.textContent = "Upload nu nog het muziekspoor.";
+      }
+    }
+
+    playBtn.addEventListener('click', () => {
+      if (isPlaying) {
+        stopAudio();
+        return;
+      }
+
+      initAudio();
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+
+      stopAudioSources();
+
+      musicSource = audioCtx.createBufferSource();
+      vocalSource = audioCtx.createBufferSource();
+
+      musicSource.buffer = musicBuffer;
+      vocalSource.buffer = vocalBuffer;
+
+      musicSource.connect(musicGainNode);
+      vocalSource.connect(vocalGainNode);
+
+      const startTime = audioCtx.currentTime + 0.1;
+      musicSource.start(startTime);
+      vocalSource.start(startTime);
+
+      isPlaying = true;
+      playBtn.innerHTML = `<svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg> Pauze`;
+      statusBar.textContent = "Speelt af...";
+
+      musicSource.onended = () => {
+        isPlaying = false;
+        playBtn.innerHTML = `<svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> Afspelen`;
+        statusBar.textContent = "Afspelen voltooid.";
+      };
+    });
+
+    function stopAudioSources() {
+      if (musicSource) { try { musicSource.stop(); musicSource.disconnect(); } catch(e){} }
+      if (vocalSource) { try { vocalSource.stop(); vocalSource.disconnect(); } catch(e){} }
+    }
+
+    function stopAudio() {
+      stopAudioSources();
+      isPlaying = false;
+      playBtn.innerHTML = `<svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> Afspelen`;
+      statusBar.textContent = "Gestopt.";
+    }
+
+    stopBtn.addEventListener('click', stopAudio);
+
+    vocalVol.addEventListener('input', (e) => {
+      applyVocalVolume(parseFloat(e.target.value));
+    });
+
+    musicVol.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      if (musicGainNode) {
+        musicGainNode.gain.setValueAtTime(val, audioCtx.currentTime);
+      }
+      musicVolVal.textContent = Math.round(val * 100) + '%';
+    });
+
+    function applyVocalVolume(val) {
+      if (vocalGainNode) {
+        vocalGainNode.gain.setValueAtTime(val, audioCtx.currentTime);
+      }
+      vocalVol.value = val;
+      vocalVolVal.textContent = Math.round(val * 100) + '%';
+      
+      document.querySelectorAll('.presets .btn-preset').forEach(btn => btn.classList.remove('active'));
+      if (val === 0) {
+        document.getElementById('vocalMuteBtn').classList.add('active');
+      }
+    }
+
+    function setVocalPreset(val) {
+      applyVocalVolume(val);
+    }
+
+    if ('serviceWorker' in navigator) {
+      const swCode = `
+        self.addEventListener('install', e => self.skipWaiting());
+        self.addEventListener('fetch', e => e.respondWith(fetch(e.request)));
+      `;
+      const blob = new Blob([swCode], { type: 'application/javascript' });
+      navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
+    }
+
+    let deferredPrompt;
+    const pwaBanner = document.getElementById('pwaBanner');
+    const installBtn = document.getElementById('installBtn');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      pwaBanner.style.display = 'flex';
+    });
+
+    installBtn.addEventListener('click', () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then(() => {
+          pwaBanner.style.display = 'none';
+          deferredPrompt = null;
         });
       }
     });
