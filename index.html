@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0f172a">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Karaoke Two-Track Player + AI Transcription</title>
+  <title>Karaoke Two-Track Player + Synced Lyrics</title>
   
   <link rel="manifest" href='data:application/manifest+json,{"name":"Karaoke Duo Player","short_name":"Karaoke","start_url":"./index.html","display":"standalone","background_color":"#0f172a","theme_color":"#0f172a","icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 512 512\"><rect width=\"512\" height=\"512\" rx=\"100\" fill=\"%236366f1\"/><path d=\"M256 120a64 64 0 00-64 64v112a64 64 0 00128 0V184a64 64 0 00-64-64zm104 112a8 8 0 00-16 0 88 88 0 01-176 0 8 8 0 00-16 0 104 104 0 0096 103.4V384h-40a8 8 0 000 16h96a8 8 0 000-16h-40v-48.6A104 104 0 00360 232z\" fill=\"white\"/></svg>","sizes":"512x512","type":"image/svg+xml"}]}'>
 
@@ -17,6 +17,7 @@
       --primary: #6366f1;
       --accent-vocal: #ec4899;
       --accent-music: #06b6d4;
+      --accent-lrc: #a855f7;
       --text-main: #f8fafc;
       --text-muted: #94a3b8;
       --border-color: rgba(255, 255, 255, 0.1);
@@ -57,7 +58,7 @@
 
     header {
       text-align: center;
-      margin-bottom: 24px;
+      margin-bottom: 20px;
     }
 
     header h1 {
@@ -66,18 +67,18 @@
       background: linear-gradient(to right, #818cf8, #c084fc);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
     }
 
     header p {
-      font-size: 0.875rem;
+      font-size: 0.85rem;
       color: var(--text-muted);
     }
 
     .file-inputs {
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 10px;
       margin-bottom: 20px;
     }
 
@@ -85,7 +86,7 @@
       background: rgba(15, 23, 42, 0.6);
       border: 1px dashed var(--border-color);
       border-radius: 12px;
-      padding: 12px 16px;
+      padding: 10px 14px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -106,7 +107,7 @@
     }
 
     .file-label {
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       text-transform: uppercase;
       letter-spacing: 0.05em;
       font-weight: 600;
@@ -114,9 +115,10 @@
 
     .file-label.music { color: var(--accent-music); }
     .file-label.vocal { color: var(--accent-vocal); }
+    .file-label.lrc { color: var(--accent-lrc); }
 
     .file-name {
-      font-size: 0.875rem;
+      font-size: 0.85rem;
       color: var(--text-main);
       white-space: nowrap;
       overflow: hidden;
@@ -127,9 +129,9 @@
       background: rgba(255, 255, 255, 0.08);
       color: var(--text-main);
       border: 1px solid var(--border-color);
-      padding: 8px 14px;
+      padding: 6px 12px;
       border-radius: 8px;
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       font-weight: 600;
       cursor: pointer;
       flex-shrink: 0;
@@ -137,7 +139,44 @@
 
     input[type="file"] { display: none; }
 
-    /* Progress & Time display */
+    /* Karaoke Display Container */
+    .lyrics-container {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      height: 160px;
+      overflow-y: auto;
+      padding: 60px 16px;
+      margin-bottom: 20px;
+      text-align: center;
+      scroll-behavior: smooth;
+      position: relative;
+    }
+
+    .lyric-line {
+      padding: 8px 12px;
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      margin-bottom: 4px;
+    }
+
+    .lyric-line:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-main);
+    }
+
+    .lyric-line.active {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #ffffff;
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.3) 0%, rgba(236, 72, 153, 0.3) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      text-shadow: 0 2px 10px rgba(99, 102, 241, 0.5);
+    }
+
     .progress-section {
       margin-bottom: 20px;
     }
@@ -194,59 +233,16 @@
       cursor: not-allowed;
     }
 
-    /* AI Transcribe Button & Display */
-    .transcribe-section {
-      margin-bottom: 20px;
-    }
-
-    .btn-transcribe {
-      width: 100%;
-      background: rgba(236, 72, 153, 0.15);
-      border: 1px solid var(--accent-vocal);
-      color: #fbcfe8;
-      padding: 10px;
-      border-radius: 10px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      margin-bottom: 12px;
-    }
-
-    .btn-transcribe:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-      border-color: var(--border-color);
-      color: var(--text-muted);
-    }
-
-    .lyrics-box {
-      background: rgba(15, 23, 42, 0.7);
-      border: 1px solid var(--border-color);
-      border-radius: 10px;
-      padding: 12px;
-      max-height: 120px;
-      overflow-y: auto;
-      font-size: 0.85rem;
-      line-height: 1.4;
-      color: #e2e8f0;
-      white-space: pre-wrap;
-      user-select: text;
-    }
-
     .mixer-section {
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 14px;
     }
 
     .channel {
       background: rgba(15, 23, 42, 0.5);
       border-radius: 12px;
-      padding: 16px;
+      padding: 14px;
       border: 1px solid var(--border-color);
     }
 
@@ -254,16 +250,16 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
 
     .channel-title {
-      font-size: 0.875rem;
+      font-size: 0.85rem;
       font-weight: 600;
     }
 
     .channel-val {
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       font-weight: 700;
       color: var(--text-muted);
     }
@@ -272,7 +268,7 @@
       position: relative;
       display: flex;
       align-items: center;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
 
     input[type="range"] {
@@ -324,7 +320,7 @@
     }
 
     .status-bar {
-      margin-top: 20px;
+      margin-top: 18px;
       text-align: center;
       font-size: 0.75rem;
       color: var(--text-muted);
@@ -353,14 +349,6 @@
       cursor: pointer;
     }
   </style>
-
-  <!-- Import Transformers.js via ES Module CDN -->
-  <script type="module">
-    import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
-    // Sta toe dat modellen van CDN worden gedownload
-    env.allowLocalModels = false;
-    window.pipeline = pipeline;
-  </script>
 </head>
 <body>
 
@@ -373,7 +361,7 @@
 
     <header>
       <h1>Karaoke Duo Player</h1>
-      <p>Laad 2 MP3-sporen & genereer zangtekst met AI</p>
+      <p>Mix je 2 sporen & zing mee met synchrone tekst</p>
     </header>
 
     <div class="file-inputs">
@@ -394,13 +382,20 @@
         <button class="btn-file" onclick="document.getElementById('vocalInput').click()">Kiezen</button>
         <input type="file" id="vocalInput" accept="audio/*">
       </div>
+
+      <div class="file-card" id="lrcCard">
+        <div class="file-info">
+          <span class="file-label lrc">Karaoke Tekst (.LRC)</span>
+          <span class="file-name" id="lrcName">Optioneel bestand...</span>
+        </div>
+        <button class="btn-file" onclick="document.getElementById('lrcInput').click()">Kiezen</button>
+        <input type="file" id="lrcInput" accept=".lrc,.txt">
+      </div>
     </div>
 
-    <div class="transcribe-section">
-      <button id="transcribeBtn" class="btn-transcribe" disabled>
-        ✨ Zang omzetten naar tekst (AI)
-      </button>
-      <div id="lyricsBox" class="lyrics-box">Geüploade zangtekst verschijnt hier...</div>
+    <!-- Live Lyrics View -->
+    <div class="lyrics-container" id="lyricsContainer">
+      <div class="lyric-line">Laad een .LRC bestand in om de tekst synchroon mee te laten lopen</div>
     </div>
 
     <div class="progress-section">
@@ -470,12 +465,13 @@
     let startTime = 0;
     let pauseOffset = 0;
     let animFrame = null;
-    
-    // Transcriber pipeline instance
-    let transcriber = null;
+
+    let lyricsData = []; // Array of { time: seconds, text: string }
+    let activeLyricIndex = -1;
 
     const musicInput = document.getElementById('musicInput');
     const vocalInput = document.getElementById('vocalInput');
+    const lrcInput = document.getElementById('lrcInput');
     const playBtn = document.getElementById('playBtn');
     const stopBtn = document.getElementById('stopBtn');
     const musicVol = document.getElementById('musicVol');
@@ -486,8 +482,7 @@
     const seekSlider = document.getElementById('seekSlider');
     const currentTimeEl = document.getElementById('currentTime');
     const durationTimeEl = document.getElementById('durationTime');
-    const transcribeBtn = document.getElementById('transcribeBtn');
-    const lyricsBox = document.getElementById('lyricsBox');
+    const lyricsContainer = document.getElementById('lyricsContainer');
 
     function initAudio() {
       if (!audioCtx) {
@@ -547,12 +542,98 @@
       try {
         vocalBuffer = await decodeAudioFile(file);
         statusBar.textContent = "Zang geladen!";
-        transcribeBtn.disabled = false;
         checkReady();
       } catch (err) {
         statusBar.textContent = "Fout bij laden van zang-bestand.";
       }
     });
+
+    // LRC Parser & Uploader
+    lrcInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      document.getElementById('lrcName').textContent = file.name;
+      document.getElementById('lrcCard').classList.add('loaded');
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        parseLRC(event.target.result);
+      };
+      reader.readAsText(file);
+    });
+
+    function parseLRC(lrcText) {
+      lyricsData = [];
+      const lines = lrcText.split('\n');
+      const timeRegex = /\[(\d{2}):(\d{2})\.(\d{2,3})\]/;
+
+      lines.forEach(line => {
+        const match = timeRegex.exec(line);
+        if (match) {
+          const minutes = parseInt(match[1], 10);
+          const seconds = parseInt(match[2], 10);
+          const millis = parseInt(match[3].padEnd(3, '0'), 10);
+          const totalSeconds = minutes * 60 + seconds + millis / 1000;
+          const text = line.replace(timeRegex, '').trim();
+
+          if (text) {
+            lyricsData.push({ time: totalSeconds, text: text });
+          }
+        }
+      });
+
+      lyricsData.sort((a, b) => a.time - b.time);
+      renderLyrics();
+    }
+
+    function renderLyrics() {
+      lyricsContainer.innerHTML = '';
+      if (lyricsData.length === 0) {
+        lyricsContainer.innerHTML = '<div class="lyric-line">Geen geldige tekst gevonden in .LRC bestand</div>';
+        return;
+      }
+
+      lyricsData.forEach((item, index) => {
+        const div = document.createElement('div');
+        div.className = 'lyric-line';
+        div.id = `lyric-${index}`;
+        div.textContent = item.text;
+        div.addEventListener('click', () => {
+          seekToTime(item.time);
+        });
+        lyricsContainer.appendChild(div);
+      });
+    }
+
+    function updateLyricsDisplay(currentPos) {
+      if (lyricsData.length === 0) return;
+
+      let newIndex = -1;
+      for (let i = 0; i < lyricsData.length; i++) {
+        if (currentPos >= lyricsData[i].time) {
+          newIndex = i;
+        } else {
+          break;
+        }
+      }
+
+      if (newIndex !== activeLyricIndex) {
+        if (activeLyricIndex !== -1) {
+          const prevEl = document.getElementById(`lyric-${activeLyricIndex}`);
+          if (prevEl) prevEl.classList.remove('active');
+        }
+
+        if (newIndex !== -1) {
+          const newEl = document.getElementById(`lyric-${newIndex}`);
+          if (newEl) {
+            newEl.classList.add('active');
+            newEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }
+        activeLyricIndex = newIndex;
+      }
+    }
 
     function checkReady() {
       const duration = getMaxDuration();
@@ -610,6 +691,7 @@
 
       seekSlider.value = (currentPos / totalDur) * 100;
       currentTimeEl.textContent = formatTime(currentPos);
+      updateLyricsDisplay(currentPos);
 
       animFrame = requestAnimationFrame(updateProgress);
     }
@@ -641,14 +723,32 @@
       currentTimeEl.textContent = "00:00";
       playBtn.innerHTML = `<svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> Afspelen`;
       statusBar.textContent = "Gestopt.";
+
+      if (activeLyricIndex !== -1) {
+        const el = document.getElementById(`lyric-${activeLyricIndex}`);
+        if (el) el.classList.remove('active');
+        activeLyricIndex = -1;
+      }
     }
 
     stopBtn.addEventListener('click', stopAudio);
+
+    function seekToTime(targetTime) {
+      pauseOffset = targetTime;
+      seekSlider.value = (targetTime / getMaxDuration()) * 100;
+      currentTimeEl.textContent = formatTime(targetTime);
+      updateLyricsDisplay(targetTime);
+
+      if (isPlaying) {
+        startAudio(pauseOffset);
+      }
+    }
 
     seekSlider.addEventListener('input', (e) => {
       const totalDur = getMaxDuration();
       const targetTime = (e.target.value / 100) * totalDur;
       currentTimeEl.textContent = formatTime(targetTime);
+      updateLyricsDisplay(targetTime);
     });
 
     seekSlider.addEventListener('change', (e) => {
@@ -688,58 +788,6 @@
     function setVocalPreset(val) {
       applyVocalVolume(val);
     }
-
-    /* === AI SPEECH-TO-TEXT TRANSCRIPTIE (TRANSFORMERS.JS) === */
-    transcribeBtn.addEventListener('click', async () => {
-      if (!vocalBuffer) return;
-
-      transcribeBtn.disabled = true;
-      lyricsBox.textContent = "AI-model laden... (eerste keer duurt even)";
-      statusBar.textContent = "Transcriptie wordt gestart...";
-
-      try {
-        if (!window.pipeline) {
-          throw new Error("Transformers.js kon niet worden geladen.");
-        }
-
-        if (!transcriber) {
-          // Gebruik het snelle en lichte Whisper-tiny model
-          transcriber = await window.pipeline(
-            'automatic-speech-recognition', 
-            'Xenova/whisper-tiny'
-          );
-        }
-
-        lyricsBox.textContent = "Zang analyseren...";
-
-        // Haal audio data uit de audioBuffer (16kHz mono is vereist voor Whisper)
-        const offlineCtx = new OfflineAudioContext(1, vocalBuffer.duration * 16000, 16000);
-        const sourceNode = offlineCtx.createBufferSource();
-        sourceNode.buffer = vocalBuffer;
-        sourceNode.connect(offlineCtx.destination);
-        sourceNode.start();
-        
-        const renderedBuffer = await offlineCtx.startRendering();
-        const audioData = renderedBuffer.getChannelData(0);
-
-        // Voer de transcriptie uit
-        const output = await transcriber(audioData, {
-          chunk_length_s: 30,
-          stride_length_s: 5,
-          language: 'dutch', // pas aan naar 'english' of laat automatisch detecteren indien gewenst
-          task: 'transcribe'
-        });
-
-        lyricsBox.textContent = output.text || "Geen tekst kunnen herkennen.";
-        statusBar.textContent = "Transcriptie voltooid!";
-      } catch (err) {
-        console.error(err);
-        lyricsBox.textContent = "Fout bij analyseren: " + err.message;
-        statusBar.textContent = "Transcriptie mislukt.";
-      } finally {
-        transcribeBtn.disabled = false;
-      }
-    });
 
     if ('serviceWorker' in navigator) {
       const swCode = `
