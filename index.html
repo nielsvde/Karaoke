@@ -70,8 +70,26 @@
 
     .zip-actions {
       display: flex;
+      flex-direction: column;
       gap: 10px;
       margin-bottom: 16px;
+    }
+    .export-group {
+      display: flex;
+      gap: 8px;
+    }
+    .input-filename {
+      flex: 1;
+      background: rgba(15, 23, 42, 0.8);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      outline: none;
+    }
+    .input-filename:focus {
+      border-color: var(--primary);
     }
     .btn-zip {
       flex: 1;
@@ -88,6 +106,10 @@
       justify-content: center;
       gap: 6px;
       transition: background 0.2s ease;
+    }
+    .btn-zip.export-btn {
+      flex: 0 0 auto;
+      padding: 10px 16px;
     }
     .btn-zip:hover {
       background: rgba(255, 255, 255, 0.15);
@@ -372,10 +394,13 @@
 
     <!-- EXPORT EN IMPORT SECTIE -->
     <div class="zip-actions">
-      <button class="btn-zip" onclick="exportToZip()">
-        <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-        Export ZIP
-      </button>
+      <div class="export-group">
+        <input type="text" id="exportFileNameInput" class="input-filename" placeholder="Bestandsnaam (optioneel)" value="karaoke-package">
+        <button class="btn-zip export-btn" onclick="exportToZip()">
+          <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+          Export ZIP
+        </button>
+      </div>
       <button class="btn-zip" onclick="document.getElementById('zipInput').click()">
         <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
         Import ZIP
@@ -603,6 +628,7 @@
     const lrcInput = document.getElementById('lrcInput');
     const lrcSelect = document.getElementById('lrcSelect');
     const zipInput = document.getElementById('zipInput');
+    const exportFileNameInput = document.getElementById('exportFileNameInput');
 
     const playBtn = document.getElementById('playBtn');
     const stopBtn = document.getElementById('stopBtn');
@@ -778,12 +804,21 @@
       reader.readAsText(file);
     });
 
-    /* ZIP EXPORT EN IMPORT FUNCTIONALITEIT (Met instellingen) */
+    /* ZIP EXPORT EN IMPORT FUNCTIONALITEIT (Met aangepaste bestandsnaam uit invoerveld) */
     async function exportToZip() {
       if (!musicFileData || !vocalFileData || !lrcFileData) {
         alert("Zorg dat het muziekspoor, het zangspoor en de lyrics zijn ingeladen voordat je exporteert.");
         return;
       }
+
+      // Haal de naam op uit het invoerveld
+      let customName = exportFileNameInput.value.trim() || "karaoke-package";
+
+      // Zorg dat het bestand op .zip eindigt
+      if (!customName.toLowerCase().endsWith('.zip')) {
+        customName += '.zip';
+      }
+
       statusBar.textContent = "ZIP bestand maken...";
       try {
         const zip = new JSZip();
@@ -801,10 +836,10 @@
         const content = await zip.generateAsync({ type: "blob" });
         const a = document.createElement("a");
         a.href = URL.createObjectURL(content);
-        a.download = "karaoke-package.zip";
+        a.download = customName;
         a.click();
         URL.revokeObjectURL(a.href);
-        statusBar.textContent = "ZIP bestand succesvol geëxporteerd!";
+        statusBar.textContent = `ZIP bestand (${customName}) succesvol geëxporteerd!`;
       } catch (err) {
         console.error(err);
         statusBar.textContent = "Fout bij maken van ZIP-bestand.";
@@ -819,6 +854,10 @@
       try {
         const zip = await JSZip.loadAsync(file);
         let foundMusic = false, foundVocal = false, foundLrc = false;
+
+        // Vul de naam in het invoerveld in op basis van het geïmporteerde bestand
+        const zipNameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
+        exportFileNameInput.value = zipNameWithoutExt;
 
         // Controleer op instellingen-bestand in de ZIP
         if (zip.files["config.json"]) {
