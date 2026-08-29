@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#0f172a">
-  <title>Karaoke Duo Player</title>
+  <title>Karaoke Duo Player + Fullscreen Lyrics</title>
   
   <link rel="manifest" href='data:application/manifest+json,{"name":"Karaoke Duo Player","short_name":"KaraokeApp","start_url":".","display":"standalone","background_color":"#0f172a","theme_color":"#0f172a","icons":[{"src":"https://via.placeholder.com/192/6366f1/ffffff?text=Karaoke","sizes":"192x192","type":"image/png"},{"src":"https://via.placeholder.com/512/6366f1/ffffff?text=Karaoke","sizes":"512x512","type":"image/png"}]}'>
 
@@ -38,8 +38,8 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 20px 16px 200px 16px; /* Extra padding onderaan voor het spelerpaneel */
-      overflow-x: hidden;
+      justify-content: center;
+      padding: 20px 16px;
     }
 
     .container {
@@ -108,7 +108,7 @@
     }
     input[type="file"] { display: none; }
 
-    .lyrics-wrapper { position: relative; margin-bottom: 20px; }
+    .lyrics-wrapper { position: relative; margin-bottom: 12px; }
     .btn-fullscreen {
       position: absolute;
       top: 10px; right: 10px; z-index: 10;
@@ -124,7 +124,9 @@
       align-items: center;
       gap: 6px;
       backdrop-filter: blur(4px);
+      transition: all 0.2s ease;
     }
+    .btn-fullscreen:hover { background: rgba(255, 255, 255, 0.2); }
 
     .btn-close-fullscreen {
       display: none;
@@ -141,15 +143,17 @@
       align-items: center;
       justify-content: center;
       backdrop-filter: blur(6px);
+      transition: all 0.2s ease;
     }
+    .btn-close-fullscreen:hover { background: rgba(239, 68, 68, 0.4); border-color: rgba(239, 68, 68, 0.6); }
 
     .lyrics-container {
       background: rgba(15, 23, 42, 0.8);
       border: 1px solid var(--border-color);
       border-radius: 12px;
-      height: 220px;
+      height: 180px;
       overflow-y: auto;
-      padding: 80px 16px;
+      padding: 60px 16px;
       text-align: center;
       scroll-behavior: smooth;
     }
@@ -158,13 +162,16 @@
       font-size: 1.05rem;
       color: var(--text-muted);
       cursor: pointer;
-      transition: transform 0.25s ease, color 0.25s ease;
+      transition: transform 0.25s ease, color 0.25s ease, text-shadow 0.25s ease;
       margin-bottom: 6px;
       line-height: 1.5;
       min-height: 44px;
       display: flex;
       align-items: center;
       justify-content: center;
+      background: transparent;
+      border: none;
+      transform-origin: center center;
     }
     .lyric-line.active {
       font-weight: 700;
@@ -173,72 +180,72 @@
       text-shadow: 0 0 12px rgba(255, 255, 255, 0.8), 0 0 24px rgba(99, 102, 241, 0.6);
     }
 
-    /* Volledig Scherm Modus */
+    /* Fullscreen Modus Styling */
     .lyrics-wrapper.fullscreen {
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
       z-index: 9999;
       background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
-      margin: 0; padding: 16px;
+      margin: 0; padding: 20px 20px 0 20px;
       display: flex; flex-direction: column;
     }
-    .lyrics-wrapper.fullscreen .lyrics-container { 
-      flex: 1; height: auto; border-radius: 20px; padding: 25vh 16px 20px 16px; 
-      border: none; background: transparent;
-    }
-    .lyrics-wrapper.fullscreen .lyric-line { font-size: 1.6rem; padding: 10px 16px; margin-bottom: 10px; }
-    .lyrics-wrapper.fullscreen .lyric-line.active { transform: scale(1.18); }
+    .lyrics-wrapper.fullscreen .lyrics-container { height: 100%; border-radius: 20px; padding: 35vh 20px 180px 20px; }
+    .lyrics-wrapper.fullscreen .lyric-line { font-size: 1.8rem; padding: 12px 20px; margin-bottom: 12px; min-height: 64px; }
+    .lyrics-wrapper.fullscreen .lyric-line.active { transform: scale(1.2); text-shadow: 0 0 20px rgba(255, 255, 255, 0.9), 0 0 35px rgba(168, 85, 247, 0.7); }
     .lyrics-wrapper.fullscreen .btn-fullscreen { display: none !important; }
     .lyrics-wrapper.fullscreen .btn-close-fullscreen { display: flex !important; }
 
-    /* Vaste Bedieningsbalk (Onderaan het scherm vastgezet) */
-    .sticky-player-panel {
-      position: fixed;
+    /* Inklapbare spelerbalk onderaan Fullscreen */
+    .fs-player-overlay {
+      display: none;
+      position: absolute;
       bottom: 0;
       left: 50%;
       transform: translateX(-50%);
       width: 100%;
-      max-width: 480px;
-      z-index: 10000;
-      padding: 0 12px calc(12px + env(safe-area-inset-bottom, 0px)) 12px;
+      max-width: 460px;
+      z-index: 10001;
+      padding: 0 16px calc(16px + env(safe-area-inset-bottom, 0px)) 16px;
+    }
+    .lyrics-wrapper.fullscreen .fs-player-overlay {
+      display: block;
     }
 
-    /* Subtiel Pijltje Boven het Paneel */
-    .toggle-panel-btn {
+    .fs-toggle-btn {
       display: flex;
       align-items: center;
       justify-content: center;
-      background: rgba(30, 41, 59, 0.9);
+      background: rgba(30, 41, 59, 0.95);
       border: 1px solid var(--border-color);
       border-bottom: none;
       color: var(--text-muted);
-      width: 44px;
-      height: 22px;
+      width: 48px;
+      height: 24px;
       border-radius: 12px 12px 0 0;
       margin: 0 auto;
       cursor: pointer;
       backdrop-filter: blur(8px);
     }
-    .toggle-panel-btn svg { transition: transform 0.3s ease; }
-    .toggle-panel-btn.collapsed svg { transform: rotate(180deg); }
+    .fs-toggle-btn svg { transition: transform 0.3s ease; }
+    .fs-toggle-btn.collapsed svg { transform: rotate(180deg); }
 
-    .controls-inner {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
+    .fs-card-inner {
       background: rgba(15, 23, 42, 0.95);
       border: 1px solid var(--border-color);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
-      border-radius: 16px;
-      padding: 14px 16px;
-      box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.6);
-      transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+      border-radius: 20px;
+      padding: 16px;
+      box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.7);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: max-height 0.35s ease, opacity 0.35s ease, padding 0.35s ease;
       overflow: hidden;
-      max-height: 420px;
+      max-height: 300px;
       opacity: 1;
     }
 
-    .sticky-player-panel.collapsed .controls-inner {
+    .fs-player-overlay.collapsed .fs-card-inner {
       max-height: 0;
       padding: 0 16px;
       border: none;
@@ -246,54 +253,85 @@
       pointer-events: none;
     }
 
-    /* Vaste Sliders en Bediening */
-    .progress-section { margin-bottom: 2px; }
-    .time-display { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; font-weight: 600; }
+    .offset-control {
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .offset-header { display: flex; justify-content: space-between; align-items: center; }
+    .offset-title { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; }
+    .offset-value { font-size: 0.9rem; font-weight: 700; color: var(--accent-lrc); font-family: monospace; }
+    .offset-btns { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+    .btn-offset {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 6px 0;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+    }
+    .btn-offset:hover { background: rgba(255, 255, 255, 0.15); }
+    .btn-offset.reset { background: rgba(239, 68, 68, 0.15); color: #fca5a5; border-color: rgba(239, 68, 68, 0.3); }
 
-    .controls-main { display: flex; gap: 10px; }
+    .progress-section { margin-bottom: 20px; }
+    .fs-card-inner .progress-section { margin-bottom: 0; }
+    .time-display { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); margin-top: 6px; font-weight: 600; }
+
+    .controls-main { display: flex; gap: 12px; margin-bottom: 20px; }
+    .fs-card-inner .controls-main { margin-bottom: 0; gap: 10px; }
     .btn-action {
-      flex: 1; padding: 10px 14px; border-radius: 10px; border: none;
-      font-size: 0.9rem; font-weight: 600; cursor: pointer;
-      display: flex; align-items: center; justify-content: center; gap: 6px;
+      flex: 1; padding: 14px; border-radius: 12px; border: none;
+      font-size: 1rem; font-weight: 600; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
     }
     .btn-play { background: var(--primary); color: white; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4); }
     .btn-play:disabled { background: rgba(255, 255, 255, 0.1); color: var(--text-muted); box-shadow: none; cursor: not-allowed; }
     .btn-stop { background: rgba(255, 255, 255, 0.08); color: var(--text-main); border: 1px solid var(--border-color); }
+    .btn-stop:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    .channel { background: rgba(15, 23, 42, 0.5); border-radius: 10px; padding: 8px 12px; border: 1px solid var(--border-color); }
-    .channel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
-    .channel-title { font-size: 0.75rem; font-weight: 600; }
-    .channel-val { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); }
+    .mixer-section { display: flex; flex-direction: column; gap: 14px; }
+    .channel { background: rgba(15, 23, 42, 0.5); border-radius: 12px; padding: 14px; border: 1px solid var(--border-color); }
+    .fs-card-inner .channel { padding: 10px 12px; }
+    .channel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .channel-title { font-size: 0.85rem; font-weight: 600; }
+    .channel-val { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); }
 
-    .slider-wrapper { position: relative; display: flex; align-items: center; }
-    input[type="range"] { -webkit-appearance: none; width: 100%; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.15); outline: none; }
+    .slider-wrapper { position: relative; display: flex; align-items: center; margin-bottom: 10px; }
+    .fs-card-inner .slider-wrapper { margin-bottom: 6px; }
+    input[type="range"] { -webkit-appearance: none; width: 100%; height: 8px; border-radius: 4px; background: rgba(255, 255, 255, 0.15); outline: none; }
     input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #ffffff;
+      -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; background: #ffffff;
       box-shadow: 0 2px 6px rgba(0,0,0,0.4); cursor: pointer;
     }
 
-    .presets { display: flex; gap: 6px; margin-top: 6px; }
+    .presets { display: flex; gap: 8px; }
     .btn-preset {
       flex: 1; background: rgba(255, 255, 255, 0.06); border: 1px solid var(--border-color);
-      color: var(--text-muted); padding: 4px 0; border-radius: 6px; font-size: 0.7rem; font-weight: 600; cursor: pointer;
+      color: var(--text-muted); padding: 6px 0; border-radius: 6px; font-size: 0.75rem; font-weight: 600; cursor: pointer;
     }
     .btn-preset.active { background: rgba(255, 255, 255, 0.15); color: var(--text-main); border-color: rgba(255, 255, 255, 0.3); }
+    .btn-preset.mute.active { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border-color: rgba(239, 68, 68, 0.4); }
 
-    .offset-control {
-      background: rgba(15, 23, 42, 0.5); border: 1px solid var(--border-color);
-      border-radius: 10px; padding: 8px 12px; margin-top: 2px;
-    }
-    .offset-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
-    .offset-title { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; }
-    .offset-value { font-size: 0.8rem; font-weight: 700; color: var(--accent-lrc); font-family: monospace; }
-
-    .status-bar { margin-top: 10px; text-align: center; font-size: 0.75rem; color: var(--text-muted); }
+    .status-bar { margin-top: 18px; text-align: center; font-size: 0.75rem; color: var(--text-muted); }
     .footer-actions { margin-top: 16px; text-align: center; }
     .btn-install-app {
       width: 100%; background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
       color: #ffffff; border: none; padding: 12px 16px; border-radius: 12px;
       font-size: 0.9rem; font-weight: 600; cursor: pointer;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
+    .btn-install-app:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(99, 102, 241, 0.6); }
+    .btn-install-app:active { transform: translateY(0); }
   </style>
 </head>
 <body>
@@ -304,7 +342,6 @@
       <p>Synchronisatie per regel</p>
     </header>
 
-    <!-- Bestanden Kiezen Sectie -->
     <div class="file-inputs">
       <div class="file-card" id="musicCard">
         <div class="file-info">
@@ -337,13 +374,12 @@
       </div>
     </div>
 
-    <!-- Lyrics Weergave -->
     <div class="lyrics-wrapper" id="lyricsWrapper">
       <button class="btn-fullscreen" id="fullscreenBtn" onclick="toggleFullscreen()">
-        <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
+        <svg id="fullscreenIcon" width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
           <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
         </svg>
-        <span>Volledig scherm</span>
+        <span id="fullscreenText">Volledig scherm</span>
       </button>
 
       <button class="btn-close-fullscreen" id="closeFullscreenBtn" onclick="toggleFullscreen()" title="Sluiten">✕</button>
@@ -351,46 +387,93 @@
       <div class="lyrics-container" id="lyricsContainer">
         <div class="lyric-line">Tekst wordt geladen...</div>
       </div>
-    </div>
 
-    <div class="status-bar" id="statusBar">Bestanden laden uit rootmap...</div>
+      <!-- INKLAPBARE SPELER IN FULLSCREEN -->
+      <div class="fs-player-overlay" id="fsPlayerOverlay">
+        <button class="fs-toggle-btn" id="fsToggleBtn" onclick="toggleFsPanel(event)" title="Paneel in/uitklappen">
+          <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/>
+          </svg>
+        </button>
 
-    <div class="footer-actions">
-      <button id="installAppBtn" class="btn-install-app">📲 App Installeren</button>
-    </div>
-  </div>
+        <div class="fs-card-inner">
+          <div class="progress-section">
+            <input type="range" id="fsSeekSlider" min="0" max="100" value="0" disabled>
+            <div class="time-display">
+              <span id="fsCurrentTime">00:00</span>
+              <span id="fsDurationTime">00:00</span>
+            </div>
+          </div>
 
-  <!-- VASTE BEDIENINGSBALK (Zowel op instellingenscherm als op fullscreen) -->
-  <div class="sticky-player-panel" id="stickyPlayerPanel">
-    <button class="toggle-panel-btn" id="togglePanelBtn" title="Paneel in/uitklappen">
-      <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/>
-      </svg>
-    </button>
-    
-    <div class="controls-inner">
-      <!-- 1. Voortgangsbalk en Tijd -->
-      <div class="progress-section">
-        <input type="range" id="seekSlider" min="0" max="100" value="0" disabled>
-        <div class="time-display">
-          <span id="currentTime">00:00</span>
-          <span id="durationTime">00:00</span>
+          <div class="controls-main">
+            <button id="fsPlayBtn" class="btn-action btn-play" disabled>
+              <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+              Afspelen
+            </button>
+            <button id="fsStopBtn" class="btn-action btn-stop" disabled>
+              <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>
+              Stop
+            </button>
+          </div>
+
+          <div class="channel">
+            <div class="channel-header">
+              <span class="channel-title" style="color: var(--accent-vocal);">🎤 Zang Volume</span>
+              <span class="channel-val" id="fsVocalVolVal">100%</span>
+            </div>
+            <div class="slider-wrapper">
+              <input type="range" id="fsVocalVol" min="0" max="1" step="0.01" value="1">
+            </div>
+            <div class="presets">
+              <button class="btn-preset mute" id="fsVocalMuteBtn" onclick="setVocalPreset(0)">Mute</button>
+              <button class="btn-preset" onclick="setVocalPreset(0.3)">30%</button>
+              <button class="btn-preset" onclick="setVocalPreset(0.7)">70%</button>
+              <button class="btn-preset active" id="fsPreset100" onclick="setVocalPreset(1.0)">100%</button>
+            </div>
+          </div>
         </div>
       </div>
+    </div>
 
-      <!-- 2. Speel en Stop Knoppen -->
-      <div class="controls-main">
-        <button id="playBtn" class="btn-action btn-play" disabled>
-          <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-          Afspelen
-        </button>
-        <button id="stopBtn" class="btn-action btn-stop" disabled>
-          <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>
-          Stop
-        </button>
+    <div class="offset-control">
+      <div class="offset-header">
+        <span class="offset-title">⏱️ Tekst Vertraging (Tienden sec.):</span>
+        <span class="offset-value" id="offsetDisplay">+1.5s</span>
       </div>
+      <div class="slider-wrapper">
+        <input type="range" id="offsetSlider" min="-5" max="5" step="0.1" value="1.5">
+      </div>
+      <div class="offset-btns">
+        <button class="btn-offset" onclick="adjustOffset(-0.4)">-0.4s</button>
+        <button class="btn-offset" onclick="adjustOffset(-0.2)">-0.2s</button>
+        <button class="btn-offset" onclick="adjustOffset(-0.1)">-0.1s</button>
+        <button class="btn-offset reset" onclick="setOffset(0.0)">0.0s</button>
+        <button class="btn-offset" onclick="adjustOffset(0.1)">+0.1s</button>
+        <button class="btn-offset" onclick="adjustOffset(0.2)">+0.2s</button>
+        <button class="btn-offset" onclick="adjustOffset(0.4)">+0.4s</button>
+      </div>
+    </div>
 
-      <!-- 3. Zang Volume Slider -->
+    <div class="progress-section">
+      <input type="range" id="seekSlider" min="0" max="100" value="0" disabled>
+      <div class="time-display">
+        <span id="currentTime">00:00</span>
+        <span id="durationTime">00:00</span>
+      </div>
+    </div>
+
+    <div class="controls-main">
+      <button id="playBtn" class="btn-action btn-play" disabled>
+        <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        Afspelen
+      </button>
+      <button id="stopBtn" class="btn-action btn-stop" disabled>
+        <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>
+        Stop
+      </button>
+    </div>
+
+    <div class="mixer-section">
       <div class="channel">
         <div class="channel-header">
           <span class="channel-title" style="color: var(--accent-vocal);">🎤 Zang Volume</span>
@@ -400,23 +483,28 @@
           <input type="range" id="vocalVol" min="0" max="1" step="0.01" value="1">
         </div>
         <div class="presets">
-          <button class="btn-preset" id="vocalMuteBtn" onclick="setVocalPreset(0)">Mute</button>
+          <button class="btn-preset mute" id="vocalMuteBtn" onclick="setVocalPreset(0)">Mute</button>
           <button class="btn-preset" onclick="setVocalPreset(0.3)">30%</button>
           <button class="btn-preset" onclick="setVocalPreset(0.7)">70%</button>
-          <button class="btn-preset active" onclick="setVocalPreset(1.0)">100%</button>
+          <button class="btn-preset active" id="mainPreset100" onclick="setVocalPreset(1.0)">100%</button>
         </div>
       </div>
 
-      <!-- 4. Tekst Vertraging Slider -->
-      <div class="offset-control">
-        <div class="offset-header">
-          <span class="offset-title">⏱️ Tekst Vertraging:</span>
-          <span class="offset-value" id="offsetDisplay">+1.5s</span>
+      <div class="channel">
+        <div class="channel-header">
+          <span class="channel-title" style="color: var(--accent-music);">🎵 Muziek Volume</span>
+          <span class="channel-val" id="musicVolVal">100%</span>
         </div>
         <div class="slider-wrapper">
-          <input type="range" id="offsetSlider" min="-5" max="5" step="0.1" value="1.5">
+          <input type="range" id="musicVol" min="0" max="1" step="0.01" value="1">
         </div>
       </div>
+    </div>
+
+    <div class="status-bar" id="statusBar">Bestanden laden uit rootmap...</div>
+
+    <div class="footer-actions">
+      <button id="installAppBtn" class="btn-install-app">📲 App Installeren</button>
     </div>
   </div>
 
@@ -463,27 +551,40 @@
     const vocalInput = document.getElementById('vocalInput');
     const lrcInput = document.getElementById('lrcInput');
     const lrcSelect = document.getElementById('lrcSelect');
+
     const playBtn = document.getElementById('playBtn');
     const stopBtn = document.getElementById('stopBtn');
+    const fsPlayBtn = document.getElementById('fsPlayBtn');
+    const fsStopBtn = document.getElementById('fsStopBtn');
+
+    const musicVol = document.getElementById('musicVol');
     const vocalVol = document.getElementById('vocalVol');
+    const fsVocalVol = document.getElementById('fsVocalVol');
+    const musicVolVal = document.getElementById('musicVolVal');
     const vocalVolVal = document.getElementById('vocalVolVal');
+    const fsVocalVolVal = document.getElementById('fsVocalVolVal');
+
     const statusBar = document.getElementById('statusBar');
     const seekSlider = document.getElementById('seekSlider');
+    const fsSeekSlider = document.getElementById('fsSeekSlider');
     const currentTimeEl = document.getElementById('currentTime');
     const durationTimeEl = document.getElementById('durationTime');
+    const fsCurrentTimeEl = document.getElementById('fsCurrentTime');
+    const fsDurationTimeEl = document.getElementById('fsDurationTime');
+
     const lyricsContainer = document.getElementById('lyricsContainer');
     const lyricsWrapper = document.getElementById('lyricsWrapper');
-    const stickyPlayerPanel = document.getElementById('stickyPlayerPanel');
-    const togglePanelBtn = document.getElementById('togglePanelBtn');
     const offsetDisplay = document.getElementById('offsetDisplay');
     const offsetSlider = document.getElementById('offsetSlider');
 
-    // In- en uitklappen van bedieningspaneel
-    togglePanelBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      stickyPlayerPanel.classList.toggle('collapsed');
-      togglePanelBtn.classList.toggle('collapsed');
-    });
+    const fsPlayerOverlay = document.getElementById('fsPlayerOverlay');
+    const fsToggleBtn = document.getElementById('fsToggleBtn');
+
+    function toggleFsPanel(e) {
+      if (e) e.stopPropagation();
+      fsPlayerOverlay.classList.toggle('collapsed');
+      fsToggleBtn.classList.toggle('collapsed');
+    }
 
     function initAudio() {
       if (!audioCtx) {
@@ -521,15 +622,24 @@
         } else {
           lyricsWrapper.classList.add('fullscreen');
         }
+        updateFullscreenUI();
       } else {
         if (document.exitFullscreen && document.fullscreenElement) document.exitFullscreen();
         lyricsWrapper.classList.remove('fullscreen');
+        updateFullscreenUI();
       }
     }
 
     document.addEventListener('fullscreenchange', () => {
       lyricsWrapper.classList.toggle('fullscreen', !!document.fullscreenElement);
+      updateFullscreenUI();
     });
+
+    function updateFullscreenUI() {
+      if (activeLineIndex !== -1) {
+        document.getElementById(`line-${activeLineIndex}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
 
     async function loadDefaultFiles() {
       try {
@@ -627,12 +737,14 @@
       });
     }
 
-    function setOffset(val) {
-      userOffset = parseFloat(val);
+    function updateOffsetDisplay() {
       offsetDisplay.textContent = `${userOffset > 0 ? '+' : ''}${userOffset.toFixed(1)}s`;
       offsetSlider.value = userOffset;
       if (audioCtx) updateLyricsDisplay(isPlaying ? (audioCtx.currentTime - startTime) : pauseOffset);
     }
+
+    function adjustOffset(delta) { userOffset = parseFloat((userOffset + delta).toFixed(1)); updateOffsetDisplay(); }
+    function setOffset(val) { userOffset = parseFloat(val); updateOffsetDisplay(); }
     offsetSlider.addEventListener('input', (e) => setOffset(e.target.value));
 
     function updateLyricsDisplay(currentPos) {
@@ -664,7 +776,13 @@
         playBtn.disabled = false;
         stopBtn.disabled = false;
         seekSlider.disabled = false;
-        durationTimeEl.textContent = formatTime(duration);
+        fsPlayBtn.disabled = false;
+        fsStopBtn.disabled = false;
+        fsSeekSlider.disabled = false;
+        
+        const formatted = formatTime(duration);
+        durationTimeEl.textContent = formatted;
+        fsDurationTimeEl.textContent = formatted;
         statusBar.textContent = "Klaar om af te spelen!";
       }
     }
@@ -692,7 +810,10 @@
 
       startTime = audioCtx.currentTime - offset;
       isPlaying = true;
-      playBtn.innerHTML = `<svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg> Pauze`;
+
+      const pauseBtnHtml = `<svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg> Pauze`;
+      playBtn.innerHTML = pauseBtnHtml;
+      fsPlayBtn.innerHTML = pauseBtnHtml;
       statusBar.textContent = "Speelt af...";
       updateProgress();
     }
@@ -705,25 +826,37 @@
       if (currentPos >= totalDur) { stopAudio(); return; }
 
       if (!isUserSeeking) {
-        seekSlider.value = (currentPos / totalDur) * 100;
-        currentTimeEl.textContent = formatTime(currentPos);
+        const val = (currentPos / totalDur) * 100;
+        seekSlider.value = val;
+        fsSeekSlider.value = val;
+        
+        const formattedTime = formatTime(currentPos);
+        currentTimeEl.textContent = formattedTime;
+        fsCurrentTimeEl.textContent = formattedTime;
+
         updateLyricsDisplay(currentPos);
       }
       animFrame = requestAnimationFrame(updateProgress);
     }
 
-    playBtn.addEventListener('click', () => {
+    function togglePlayPause() {
       if (isPlaying) {
         pauseOffset = audioCtx.currentTime - startTime;
         stopAudioSources();
         isPlaying = false;
         cancelAnimationFrame(animFrame);
-        playBtn.innerHTML = `<svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> Hervatten`;
+        
+        const resumeBtnHtml = `<svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> Hervatten`;
+        playBtn.innerHTML = resumeBtnHtml;
+        fsPlayBtn.innerHTML = resumeBtnHtml;
         statusBar.textContent = "Gepauzeerd.";
       } else {
         startAudio(pauseOffset);
       }
-    });
+    }
+
+    playBtn.addEventListener('click', togglePlayPause);
+    fsPlayBtn.addEventListener('click', togglePlayPause);
 
     function stopAudioSources() {
       [musicSource, vocalSource].forEach(src => {
@@ -737,52 +870,95 @@
       isPlaying = false;
       pauseOffset = 0;
       cancelAnimationFrame(animFrame);
+      
       seekSlider.value = 0;
+      fsSeekSlider.value = 0;
       currentTimeEl.textContent = "00:00";
-      playBtn.innerHTML = `<svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> Afspelen`;
+      fsCurrentTimeEl.textContent = "00:00";
+      
+      const playBtnHtml = `<svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> Afspelen`;
+      playBtn.innerHTML = playBtnHtml;
+      fsPlayBtn.innerHTML = playBtnHtml;
       statusBar.textContent = "Gestopt.";
     }
 
     stopBtn.addEventListener('click', stopAudio);
+    fsStopBtn.addEventListener('click', stopAudio);
 
     function seekToTime(targetTime) {
       pauseOffset = Math.max(0, targetTime);
-      seekSlider.value = (pauseOffset / getMaxDuration()) * 100;
-      currentTimeEl.textContent = formatTime(pauseOffset);
+      const val = (pauseOffset / getMaxDuration()) * 100;
+      seekSlider.value = val;
+      fsSeekSlider.value = val;
+      
+      const formattedTime = formatTime(pauseOffset);
+      currentTimeEl.textContent = formattedTime;
+      fsCurrentTimeEl.textContent = formattedTime;
+
       updateLyricsDisplay(pauseOffset);
       if (isPlaying) startAudio(pauseOffset);
     }
 
-    seekSlider.addEventListener('mousedown', () => { isUserSeeking = true; });
-    seekSlider.addEventListener('touchstart', () => { isUserSeeking = true; });
+    function setupSeekEvents(slider) {
+      slider.addEventListener('mousedown', () => { isUserSeeking = true; });
+      slider.addEventListener('touchstart', () => { isUserSeeking = true; });
 
-    seekSlider.addEventListener('input', (e) => {
-      const targetTime = (e.target.value / 100) * getMaxDuration();
-      currentTimeEl.textContent = formatTime(targetTime);
-      updateLyricsDisplay(targetTime);
-    });
+      slider.addEventListener('input', (e) => {
+        const targetTime = (e.target.value / 100) * getMaxDuration();
+        const formattedTime = formatTime(targetTime);
+        currentTimeEl.textContent = formattedTime;
+        fsCurrentTimeEl.textContent = formattedTime;
+        seekSlider.value = e.target.value;
+        fsSeekSlider.value = e.target.value;
+        updateLyricsDisplay(targetTime);
+      });
 
-    seekSlider.addEventListener('change', (e) => {
-      isUserSeeking = false;
-      pauseOffset = (e.target.value / 100) * getMaxDuration();
-      if (isPlaying) startAudio(pauseOffset);
-    });
+      slider.addEventListener('change', (e) => {
+        isUserSeeking = false;
+        pauseOffset = (e.target.value / 100) * getMaxDuration();
+        if (isPlaying) startAudio(pauseOffset);
+      });
+    }
+
+    setupSeekEvents(seekSlider);
+    setupSeekEvents(fsSeekSlider);
 
     vocalVol.addEventListener('input', (e) => applyVocalVolume(parseFloat(e.target.value)));
+    fsVocalVol.addEventListener('input', (e) => applyVocalVolume(parseFloat(e.target.value)));
+
+    musicVol.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      if (musicGainNode) musicGainNode.gain.setValueAtTime(val, audioCtx.currentTime);
+      musicVolVal.textContent = Math.round(val * 100) + '%';
+    });
 
     function applyVocalVolume(val) {
       if (vocalGainNode) vocalGainNode.gain.setValueAtTime(val, audioCtx.currentTime);
       vocalVol.value = val;
-      vocalVolVal.textContent = Math.round(val * 100) + '%';
+      fsVocalVol.value = val;
+      const text = Math.round(val * 100) + '%';
+      vocalVolVal.textContent = text;
+      fsVocalVolVal.textContent = text;
+
       document.querySelectorAll('.presets .btn-preset').forEach(btn => btn.classList.remove('active'));
-      if (val === 0) document.getElementById('vocalMuteBtn').classList.add('active');
+      if (val === 0) {
+        document.getElementById('vocalMuteBtn')?.classList.add('active');
+        document.getElementById('fsVocalMuteBtn')?.classList.add('active');
+      } else if (val === 1.0) {
+        document.getElementById('mainPreset100')?.classList.add('active');
+        document.getElementById('fsPreset100')?.classList.add('active');
+      }
     }
 
     function setVocalPreset(val) { applyVocalVolume(val); }
 
-    window.addEventListener('DOMContentLoaded', () => {
-      loadDefaultFiles();
+    lyricsContainer.addEventListener('click', (e) => {
+      if (lyricsWrapper.classList.contains('fullscreen') && !e.target.classList.contains('lyric-line')) {
+        toggleFullscreen();
+      }
     });
+
+    window.addEventListener('DOMContentLoaded', loadDefaultFiles);
   </script>
 </body>
 </html>
