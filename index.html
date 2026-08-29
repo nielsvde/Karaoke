@@ -6,7 +6,6 @@
   <meta name="theme-color" content="#0f172a">
   <title>Karaoke Duo Player + Fullscreen Lyrics</title>
   
-  <!-- Automatisch gegenereerde PWA Manifest via Data URI -->
   <link rel="manifest" href='data:application/manifest+json,{"name":"Karaoke Duo Player","short_name":"KaraokeApp","start_url":".","display":"standalone","background_color":"#0f172a","theme_color":"#0f172a","icons":[{"src":"https://via.placeholder.com/192/6366f1/ffffff?text=Karaoke","sizes":"192x192","type":"image/png"},{"src":"https://via.placeholder.com/512/6366f1/ffffff?text=Karaoke","sizes":"512x512","type":"image/png"}]}'>
 
   <style>
@@ -75,7 +74,6 @@
       margin-bottom: 12px;
     }
 
-    /* Installeer App Knop Styling */
     .btn-install-app {
       display: none;
       background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
@@ -129,6 +127,7 @@
       gap: 2px;
       overflow: hidden;
       padding-right: 10px;
+      flex: 1;
     }
 
     .file-label {
@@ -150,6 +149,18 @@
       text-overflow: ellipsis;
     }
 
+    .select-lrc {
+      background: rgba(15, 23, 42, 0.8);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      outline: none;
+    }
+
     .btn-file {
       background: rgba(255, 255, 255, 0.08);
       color: var(--text-main);
@@ -164,7 +175,6 @@
 
     input[type="file"] { display: none; }
 
-    /* Karaoke Display Container */
     .lyrics-wrapper {
       position: relative;
       margin-bottom: 12px;
@@ -205,7 +215,6 @@
       scroll-behavior: smooth;
     }
 
-    /* Regels aangepast om verspringen te voorkomen */
     .lyric-line {
       padding: 8px 12px;
       font-size: 1.05rem;
@@ -223,7 +232,6 @@
       transform-origin: center center;
     }
 
-    /* Actieve regel zonder achtergrondvak en zonder springen */
     .lyric-line.active {
       font-weight: 700;
       color: #ffffff;
@@ -266,12 +274,10 @@
       text-shadow: 0 0 20px rgba(255, 255, 255, 0.9), 0 0 35px rgba(168, 85, 247, 0.7);
     }
 
-    /* Knop verbergen wanneer het scherm op volledig scherm staat */
     .lyrics-wrapper.fullscreen .btn-fullscreen {
-      display: none;
+      display: none !important;
     }
 
-    /* Precise Offset Controls */
     .offset-control {
       background: rgba(15, 23, 42, 0.5);
       border: 1px solid var(--border-color);
@@ -489,7 +495,6 @@
     <header>
       <h1>Karaoke Duo Player</h1>
       <p>Synchronisatie per regel</p>
-      <!-- Installeer App Knop -->
       <button id="installAppBtn" class="btn-install-app">
         📲 App Installeren
       </button>
@@ -499,7 +504,7 @@
       <div class="file-card" id="musicCard">
         <div class="file-info">
           <span class="file-label music">Muziek Spoor</span>
-          <span class="file-name" id="musicName">Geen bestand gekozen</span>
+          <span class="file-name" id="musicName">Laden...</span>
         </div>
         <button class="btn-file" onclick="document.getElementById('musicInput').click()">Kiezen</button>
         <input type="file" id="musicInput" accept="audio/*">
@@ -508,23 +513,26 @@
       <div class="file-card" id="vocalCard">
         <div class="file-info">
           <span class="file-label vocal">Zang Spoor</span>
-          <span class="file-name" id="vocalName">Geen bestand gekozen</span>
+          <span class="file-name" id="vocalName">Laden...</span>
         </div>
         <button class="btn-file" onclick="document.getElementById('vocalInput').click()">Kiezen</button>
         <input type="file" id="vocalInput" accept="audio/*">
       </div>
 
-      <div class="file-card" id="lrcCard">
+      <!-- Dropdown voor LRC keuze toegevoegd -->
+      <div class="file-card loaded" id="lrcCard">
         <div class="file-info">
           <span class="file-label lrc">Karaoke Tekst (.LRC)</span>
-          <span class="file-name" id="lrcName">Optioneel bestand...</span>
+          <select id="lrcSelect" class="select-lrc">
+            <option value="Marianne40.lrc">Marianne40.lrc</option>
+            <option value="OrigineelR2.lrc">OrigineelR2.lrc</option>
+          </select>
         </div>
-        <button class="btn-file" onclick="document.getElementById('lrcInput').click()">Kiezen</button>
+        <button class="btn-file" onclick="document.getElementById('lrcInput').click()">Eigen .LRC</button>
         <input type="file" id="lrcInput" accept=".lrc,.txt">
       </div>
     </div>
 
-    <!-- Live Lyrics View met Fullscreen Knop -->
     <div class="lyrics-wrapper" id="lyricsWrapper">
       <button class="btn-fullscreen" id="fullscreenBtn" onclick="toggleFullscreen()">
         <svg id="fullscreenIcon" width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
@@ -533,19 +541,19 @@
         <span id="fullscreenText">Volledig scherm</span>
       </button>
       <div class="lyrics-container" id="lyricsContainer">
-        <div class="lyric-line">Laad een .LRC bestand in om de tekst te zien</div>
+        <div class="lyric-line">Tekst wordt geladen...</div>
       </div>
     </div>
 
-    <!-- Tienden van Seconden Regelaar -->
+    <!-- Standaard ingesteld op 1.5s -->
     <div class="offset-control">
       <div class="offset-header">
         <span class="offset-title">⏱️ Tekst Vertraging (Tienden sec.):</span>
-        <span class="offset-value" id="offsetDisplay">0.0s</span>
+        <span class="offset-value" id="offsetDisplay">+1.5s</span>
       </div>
       
       <div class="slider-wrapper">
-        <input type="range" id="offsetSlider" min="-5" max="5" step="0.1" value="0">
+        <input type="range" id="offsetSlider" min="-5" max="5" step="0.1" value="1.5">
       </div>
 
       <div class="offset-btns">
@@ -607,13 +615,12 @@
     </div>
 
     <div class="status-bar" id="statusBar">
-      Kies minstens 1 spoor om te beginnen
+      Bestanden laden uit rootmap...
     </div>
 
   </div>
 
   <script>
-    // --- PWA Service Worker Registratie (Inline via Blob) ---
     if ('serviceWorker' in navigator) {
       const swCode = `
         self.addEventListener('install', e => e.waitUntil(self.skipWaiting()));
@@ -625,7 +632,6 @@
       navigator.serviceWorker.register(swUrl).catch(() => {});
     }
 
-    // --- PWA Install App Knop Logica ---
     let deferredPrompt;
     const installAppBtn = document.getElementById('installAppBtn');
 
@@ -649,7 +655,6 @@
       installAppBtn.style.display = 'none';
     });
 
-    // --- Audio & Karaoke Logica ---
     let audioCtx = null;
     let musicBuffer = null;
     let vocalBuffer = null;
@@ -666,11 +671,12 @@
 
     let lyricsData = []; 
     let activeLineIndex = -1;
-    let userOffset = 0.0;
+    let userOffset = 1.5; // Standaard vertraging ingesteld op 1.5 seconden
 
     const musicInput = document.getElementById('musicInput');
     const vocalInput = document.getElementById('vocalInput');
     const lrcInput = document.getElementById('lrcInput');
+    const lrcSelect = document.getElementById('lrcSelect');
     const playBtn = document.getElementById('playBtn');
     const stopBtn = document.getElementById('stopBtn');
     const musicVol = document.getElementById('musicVol');
@@ -683,6 +689,8 @@
     const durationTimeEl = document.getElementById('durationTime');
     const lyricsContainer = document.getElementById('lyricsContainer');
     const lyricsWrapper = document.getElementById('lyricsWrapper');
+    const fullscreenText = document.getElementById('fullscreenText');
+    const fullscreenIcon = document.getElementById('fullscreenIcon');
     const offsetDisplay = document.getElementById('offsetDisplay');
     const offsetSlider = document.getElementById('offsetSlider');
 
@@ -697,10 +705,14 @@
       }
     }
 
-    async function decodeAudioFile(file) {
+    async function decodeAudioArrayBuffer(arrayBuffer) {
       initAudio();
-      const arrayBuffer = await file.arrayBuffer();
       return await audioCtx.decodeAudioData(arrayBuffer);
+    }
+
+    async function decodeAudioFile(file) {
+      const arrayBuffer = await file.arrayBuffer();
+      return await decodeAudioArrayBuffer(arrayBuffer);
     }
 
     function getMaxDuration() {
@@ -752,6 +764,53 @@
       }
     }
 
+    // AUTOMATISCH LADEN UIT ROOTMAP
+    async function loadDefaultFiles() {
+      try {
+        statusBar.textContent = "Laden van standaard audio en lyrics...";
+        
+        // 1. Muziek spoor laden
+        fetch('./Marianne40audio.mp3')
+          .then(res => res.arrayBuffer())
+          .then(async buffer => {
+            musicBuffer = await decodeAudioArrayBuffer(buffer);
+            document.getElementById('musicName').textContent = "Marianne40audio.mp3";
+            document.getElementById('musicCard').classList.add('loaded');
+            checkReady();
+          }).catch(() => { document.getElementById('musicName').textContent = "Mislukt (kies handmatig)"; });
+
+        // 2. Zang spoor laden
+        fetch('./Marianne40vocalsorigineel.mp3')
+          .then(res => res.arrayBuffer())
+          .then(async buffer => {
+            vocalBuffer = await decodeAudioArrayBuffer(buffer);
+            document.getElementById('vocalName').textContent = "Marianne40vocalsorigineel.mp3";
+            document.getElementById('vocalCard').classList.add('loaded');
+            checkReady();
+          }).catch(() => { document.getElementById('vocalName').textContent = "Mislukt (kies handmatig)"; });
+
+        // 3. Standaard geselecteerde LRC bestand laden
+        loadLrcFromUrl(lrcSelect.value);
+
+      } catch (err) {
+        statusBar.textContent = "Automatisch laden mislukt, kies bestanden handmatig.";
+      }
+    }
+
+    function loadLrcFromUrl(url) {
+      fetch('./' + url)
+        .then(res => res.text())
+        .then(text => parseLRC(text))
+        .catch(() => {
+          lyricsContainer.innerHTML = '<div class="lyric-line">Kon .lrc bestand niet laden</div>';
+        });
+    }
+
+    lrcSelect.addEventListener('change', (e) => {
+      loadLrcFromUrl(e.target.value);
+    });
+
+    // Event listeners voor handmatige bestandskiezer fallback
     musicInput.addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -777,8 +836,6 @@
     lrcInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
-      document.getElementById('lrcName').textContent = file.name;
-      document.getElementById('lrcCard').classList.add('loaded');
 
       const reader = new FileReader();
       reader.onload = (event) => { parseLRC(event.target.result); };
@@ -1012,6 +1069,17 @@
     }
 
     function setVocalPreset(val) { applyVocalVolume(val); }
+
+    lyricsContainer.addEventListener('click', (e) => {
+      if (lyricsWrapper.classList.contains('fullscreen') && !e.target.classList.contains('lyric-line')) {
+        toggleFullscreen();
+      }
+    });
+
+    // Start direct met automatisch laden bij het openen van de pagina
+    window.addEventListener('DOMContentLoaded', () => {
+      loadDefaultFiles();
+    });
   </script>
 </body>
 </html>
