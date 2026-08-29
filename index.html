@@ -784,7 +784,7 @@
           .then(res => res.arrayBuffer())
           .then(async buffer => {
             vocalBuffer = await decodeAudioArrayBuffer(buffer);
-            document.getElementById('vocalName').textContent = "Marianne40vocalsorigineel.mp3";
+            document.getElementById('vocalName').textContent = "Marianne40vocalsoriginal.mp3";
             document.getElementById('vocalCard').classList.add('loaded');
             checkReady();
           }).catch(() => { document.getElementById('vocalName').textContent = "Mislukt (kies handmatig)"; });
