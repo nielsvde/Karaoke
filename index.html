@@ -77,9 +77,12 @@
     .export-group {
       display: flex;
       gap: 8px;
+      align-items: center;
+      width: 100%;
     }
     .input-filename {
       flex: 1;
+      min-width: 0;
       background: rgba(15, 23, 42, 0.8);
       color: var(--text-main);
       border: 1px solid var(--border-color);
@@ -92,11 +95,11 @@
       border-color: var(--primary);
     }
     .btn-zip {
-      flex: 1;
+      width: 100%;
       background: rgba(255, 255, 255, 0.08);
       color: var(--text-main);
       border: 1px solid var(--border-color);
-      padding: 10px;
+      padding: 10px 12px;
       border-radius: 10px;
       font-size: 0.8rem;
       font-weight: 600;
@@ -106,10 +109,11 @@
       justify-content: center;
       gap: 6px;
       transition: background 0.2s ease;
+      white-space: nowrap;
     }
     .btn-zip.export-btn {
-      flex: 0 0 auto;
-      padding: 10px 16px;
+      width: auto;
+      flex-shrink: 0;
     }
     .btn-zip:hover {
       background: rgba(255, 255, 255, 0.15);
@@ -137,7 +141,7 @@
       background: rgba(255, 255, 255, 0.08);
       color: var(--text-main);
       border: 1px solid var(--border-color);
-      padding: 6px 12px;
+      padding: 6px 14px;
       border-radius: 8px;
       font-size: 0.75rem;
       font-weight: 600;
@@ -420,7 +424,7 @@
           <span class="file-label lrc">Karaoke Tekst (.LRC)</span>
           <span class="file-name" id="lrcName">Laden...</span>
         </div>
-        <button class="btn-file" onclick="document.getElementById('lrcInput').click()">Eigen .LRC</button>
+        <button class="btn-file" onclick="document.getElementById('lrcInput').click()">Kiezen</button>
         <input type="file" id="lrcInput" accept=".lrc,.txt">
       </div>
     </div>
