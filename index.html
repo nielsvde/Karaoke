@@ -615,7 +615,7 @@
       return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     }
 
-    function toggleFullscreen() {
+    function enterFullscreen() {
       if (!document.fullscreenElement && !lyricsWrapper.classList.contains('fullscreen')) {
         if (lyricsWrapper.requestFullscreen) {
           lyricsWrapper.requestFullscreen().catch(() => lyricsWrapper.classList.add('fullscreen'));
@@ -623,6 +623,12 @@
           lyricsWrapper.classList.add('fullscreen');
         }
         updateFullscreenUI();
+      }
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement && !lyricsWrapper.classList.contains('fullscreen')) {
+        enterFullscreen();
       } else {
         if (document.exitFullscreen && document.fullscreenElement) document.exitFullscreen();
         lyricsWrapper.classList.remove('fullscreen');
@@ -851,6 +857,7 @@
         fsPlayBtn.innerHTML = resumeBtnHtml;
         statusBar.textContent = "Gepauzeerd.";
       } else {
+        enterFullscreen(); // Schakelt automatisch naar fullscreen bij het starten
         startAudio(pauseOffset);
       }
     }
