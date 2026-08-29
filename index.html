@@ -402,7 +402,7 @@
       <div class="file-card" id="musicCard">
         <div class="file-info">
           <span class="file-label music">Muziek Spoor</span>
-          <span class="file-name" id="musicName">Laden...</span>
+          <span class="file-name" id="musicName">Geen bestand gekozen</span>
         </div>
         <button class="btn-file" onclick="document.getElementById('musicInput').click()">Kiezen</button>
         <input type="file" id="musicInput" accept="audio/*">
@@ -411,7 +411,7 @@
       <div class="file-card" id="vocalCard">
         <div class="file-info">
           <span class="file-label vocal">Zang Spoor</span>
-          <span class="file-name" id="vocalName">Laden...</span>
+          <span class="file-name" id="vocalName">Geen bestand gekozen</span>
         </div>
         <button class="btn-file" onclick="document.getElementById('vocalInput').click()">Kiezen</button>
         <input type="file" id="vocalInput" accept="audio/*">
@@ -420,7 +420,7 @@
       <div class="file-card" id="lrcCard">
         <div class="file-info">
           <span class="file-label lrc">Karaoke Tekst (.LRC)</span>
-          <span class="file-name" id="lrcName">Laden...</span>
+          <span class="file-name" id="lrcName">Geen bestand gekozen</span>
         </div>
         <button class="btn-file" onclick="document.getElementById('lrcInput').click()">Kiezen</button>
         <input type="file" id="lrcInput" accept=".lrc,.txt">
@@ -438,7 +438,7 @@
       <button class="btn-close-fullscreen" id="closeFullscreenBtn" onclick="toggleFullscreen()" title="Sluiten">✕</button>
 
       <div class="lyrics-container" id="lyricsContainer">
-        <div class="lyric-line">Tekst wordt geladen...</div>
+        <div class="lyric-line">Kies je audio- en tekstbestanden om te starten...</div>
       </div>
 
       <!-- INKLAPBARE SPELER IN FULLSCREEN -->
@@ -554,7 +554,7 @@
       </div>
     </div>
 
-    <div class="status-bar" id="statusBar">Bestanden laden uit rootmap...</div>
+    <div class="status-bar" id="statusBar">Upload audio- en tekstbestanden of een ZIP-pakket.</div>
 
     <div class="footer-actions">
       <button id="installAppBtn" class="btn-install-app">📲 App Installeren</button>
@@ -564,7 +564,6 @@
   <script>
     // DYNAMISCHE MANIFEST EN SERVICE WORKER GENERATIE VOOR VOLLEDIGE PWA ONDERSTEUNING
     (function initPWA() {
-      // 1. Dynamisch Web App Manifest injecteren met SVG-gebaseerde Data-URL Icoontjes
       const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><rect width="512" height="512" rx="128" fill="#0f172a"/><path d="M160 120v272l224-136z" fill="#6366f1"/></svg>`;
       const iconUrl = 'data:image/svg+xml;base64,' + btoa(svgIcon);
 
@@ -588,7 +587,6 @@
       manifestLink.href = manifestUrl;
       document.head.appendChild(manifestLink);
 
-      // 2. Service Worker Registratie
       if ('serviceWorker' in navigator) {
         const swCode = `
           const CACHE_NAME = 'karaoke-cache-v1';
@@ -645,7 +643,7 @@
     // Opslag voor ruwe bestandsdata t.b.v. Zip Export
     let musicFileData = null, musicFileName = "music.mp3";
     let vocalFileData = null, vocalFileName = "vocal.mp3";
-    let lrcFileData = null, lrcFileName = "Marianne40.lrc";
+    let lrcFileData = null, lrcFileName = "lyrics.lrc";
 
     const musicInput = document.getElementById('musicInput');
     const vocalInput = document.getElementById('vocalInput');
@@ -702,10 +700,6 @@
       return await audioCtx.decodeAudioData(arrayBuffer);
     }
 
-    async function decodeAudioFile(file) {
-      return await decodeAudioArrayBuffer(await file.arrayBuffer());
-    }
-
     function getMaxDuration() {
       return Math.max(musicBuffer?.duration || 0, vocalBuffer?.duration || 0);
     }
@@ -745,47 +739,6 @@
     function updateFullscreenUI() {
       if (activeLineIndex !== -1) {
         document.getElementById(`line-${activeLineIndex}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-    }
-
-    async function loadDefaultFiles() {
-      try {
-        statusBar.textContent = "Laden van standaard audio en lyrics...";
-        
-        fetch('./Marianne40audio.mp3')
-          .then(res => { if (!res.ok) throw new Error(); return res.arrayBuffer(); })
-          .then(async buffer => {
-            musicFileData = buffer.slice(0);
-            musicFileName = "Marianne40audio.mp3";
-            musicBuffer = await decodeAudioArrayBuffer(buffer);
-            document.getElementById('musicName').textContent = musicFileName;
-            document.getElementById('musicCard').classList.add('loaded');
-            checkReady();
-          }).catch(() => { document.getElementById('musicName').textContent = "Mislukt (kies handmatig)"; });
-
-        fetch('./Marianne40vocalsoriginal.mp3')
-          .then(res => { if (!res.ok) throw new Error(); return res.arrayBuffer(); })
-          .then(async buffer => {
-            vocalFileData = buffer.slice(0);
-            vocalFileName = "Marianne40vocalsoriginal.mp3";
-            vocalBuffer = await decodeAudioArrayBuffer(buffer);
-            document.getElementById('vocalName').textContent = vocalFileName;
-            document.getElementById('vocalCard').classList.add('loaded');
-            checkReady();
-          }).catch(() => { document.getElementById('vocalName').textContent = "Mislukt (kies handmatig)"; });
-
-        fetch('./Marianne40.lrc')
-          .then(res => { if (!res.ok) throw new Error(); return res.text(); })
-          .then(text => {
-            lrcFileData = text;
-            lrcFileName = "Marianne40.lrc";
-            document.getElementById('lrcName').textContent = lrcFileName;
-            document.getElementById('lrcCard').classList.add('loaded');
-            parseLRC(text);
-          }).catch(() => { document.getElementById('lrcName').textContent = "Mislukt (kies handmatig)"; });
-
-      } catch (err) {
-        statusBar.textContent = "Automatisch laden mislukt, kies bestanden handmatig.";
       }
     }
 
@@ -1191,7 +1144,6 @@
 
     window.addEventListener('DOMContentLoaded', () => {
       updateOffsetDisplay();
-      loadDefaultFiles();
     });
   </script>
 </body>
