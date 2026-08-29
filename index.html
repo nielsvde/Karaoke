@@ -585,7 +585,12 @@
     let audioCtx = null, musicBuffer = null, vocalBuffer = null;
     let musicSource = null, vocalSource = null, musicGainNode = null, vocalGainNode = null;
     let isPlaying = false, startTime = 0, pauseOffset = 0, animFrame = null;
-    let lyricsData = [], activeLineIndex = -1, userOffset = 1.5;
+    let lyricsData = [], activeLineIndex = -1;
+    
+    // Ophalen van de opgeslagen offset-waarde of standaard 1.5 gebruiken
+    const savedOffset = localStorage.getItem('karaoke_userOffset');
+    let userOffset = savedOffset !== null ? parseFloat(savedOffset) : 1.5;
+    
     let isUserSeeking = false;
 
     // Opslag voor ruwe bestandsdata t.b.v. Zip Export
@@ -773,7 +778,7 @@
       reader.readAsText(file);
     });
 
-    /* ZIP EXPORT EN IMPORT FUNCTIONALITEIT */
+    /* ZIP EXPORT EN IMPORT FUNCTIONALITEIT (Met instellingen) */
     async function exportToZip() {
       if (!musicFileData || !vocalFileData || !lrcFileData) {
         alert("Zorg dat het muziekspoor, het zangspoor en de lyrics zijn ingeladen voordat je exporteert.");
@@ -785,6 +790,13 @@
         zip.file(musicFileName, musicFileData);
         zip.file(vocalFileName, vocalFileData);
         zip.file(lrcFileName, lrcFileData);
+
+        // Exporteer instellingen als JSON bestand in de ZIP
+        const settings = {
+          userOffset: userOffset,
+          exportDate: new Date().toISOString()
+        };
+        zip.file("config.json", JSON.stringify(settings, null, 2));
 
         const content = await zip.generateAsync({ type: "blob" });
         const a = document.createElement("a");
@@ -807,6 +819,19 @@
       try {
         const zip = await JSZip.loadAsync(file);
         let foundMusic = false, foundVocal = false, foundLrc = false;
+
+        // Controleer op instellingen-bestand in de ZIP
+        if (zip.files["config.json"]) {
+          try {
+            const configText = await zip.files["config.json"].async("string");
+            const config = JSON.parse(configText);
+            if (config.userOffset !== undefined) {
+              setOffset(config.userOffset);
+            }
+          } catch (configErr) {
+            console.warn("Kon config.json niet verwerken", configErr);
+          }
+        }
 
         for (const filename of Object.keys(zip.files)) {
           const zipEntry = zip.files[filename];
@@ -889,6 +914,7 @@
     function updateOffsetDisplay() {
       offsetDisplay.textContent = `${userOffset > 0 ? '+' : ''}${userOffset.toFixed(1)}s`;
       offsetSlider.value = userOffset;
+      localStorage.setItem('karaoke_userOffset', userOffset);
       if (audioCtx) updateLyricsDisplay(isPlaying ? (audioCtx.currentTime - startTime) : pauseOffset);
     }
 
@@ -1107,7 +1133,10 @@
       }
     });
 
-    window.addEventListener('DOMContentLoaded', loadDefaultFiles);
+    window.addEventListener('DOMContentLoaded', () => {
+      updateOffsetDisplay();
+      loadDefaultFiles();
+    });
   </script>
 </body>
 </html>
