@@ -54,11 +54,7 @@
       box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
     }
 
-    header {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-
+    header { text-align: center; margin-bottom: 20px; }
     header h1 {
       font-size: 1.6rem;
       font-weight: 700;
@@ -67,44 +63,9 @@
       -webkit-text-fill-color: transparent;
       margin-bottom: 4px;
     }
+    header p { font-size: 0.85rem; color: var(--text-muted); }
 
-    header p {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      margin-bottom: 12px;
-    }
-
-    .btn-install-app {
-      display: none;
-      background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-      color: #ffffff;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      cursor: pointer;
-      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-      margin: 0 auto;
-    }
-
-    .btn-install-app:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 6px 16px rgba(99, 102, 241, 0.6);
-    }
-
-    .btn-install-app:active {
-      transform: translateY(0);
-    }
-
-    .file-inputs {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-
+    .file-inputs { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
     .file-card {
       background: rgba(15, 23, 42, 0.6);
       border: 1px dashed var(--border-color);
@@ -114,40 +75,13 @@
       align-items: center;
       justify-content: space-between;
     }
-
-    .file-card.loaded {
-      border-style: solid;
-      border-color: var(--primary);
-      background: rgba(99, 102, 241, 0.1);
-    }
-
-    .file-info {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      overflow: hidden;
-      padding-right: 10px;
-      flex: 1;
-    }
-
-    .file-label {
-      font-size: 0.7rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      font-weight: 600;
-    }
-
+    .file-card.loaded { border-style: solid; border-color: var(--primary); background: rgba(99, 102, 241, 0.1); }
+    .file-info { display: flex; flex-direction: column; gap: 2px; overflow: hidden; padding-right: 10px; flex: 1; }
+    .file-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
     .file-label.music { color: var(--accent-music); }
     .file-label.vocal { color: var(--accent-vocal); }
     .file-label.lrc { color: var(--accent-lrc); }
-
-    .file-name {
-      font-size: 0.85rem;
-      color: var(--text-main);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
+    .file-name { font-size: 0.85rem; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
     .select-lrc {
       background: rgba(15, 23, 42, 0.8);
@@ -172,19 +106,12 @@
       cursor: pointer;
       flex-shrink: 0;
     }
-
     input[type="file"] { display: none; }
 
-    .lyrics-wrapper {
-      position: relative;
-      margin-bottom: 12px;
-    }
-
+    .lyrics-wrapper { position: relative; margin-bottom: 12px; }
     .btn-fullscreen {
       position: absolute;
-      top: 10px;
-      right: 10px;
-      z-index: 10;
+      top: 10px; right: 10px; z-index: 10;
       background: rgba(15, 23, 42, 0.7);
       border: 1px solid var(--border-color);
       color: var(--text-main);
@@ -199,10 +126,7 @@
       backdrop-filter: blur(4px);
       transition: all 0.2s ease;
     }
-
-    .btn-fullscreen:hover {
-      background: rgba(255, 255, 255, 0.2);
-    }
+    .btn-fullscreen:hover { background: rgba(255, 255, 255, 0.2); }
 
     .lyrics-container {
       background: rgba(15, 23, 42, 0.8);
@@ -214,7 +138,6 @@
       text-align: center;
       scroll-behavior: smooth;
     }
-
     .lyric-line {
       padding: 8px 12px;
       font-size: 1.05rem;
@@ -231,52 +154,24 @@
       border: none;
       transform-origin: center center;
     }
-
     .lyric-line.active {
       font-weight: 700;
       color: #ffffff;
-      background: transparent;
-      border: none;
       transform: scale(1.15);
       text-shadow: 0 0 12px rgba(255, 255, 255, 0.8), 0 0 24px rgba(99, 102, 241, 0.6);
     }
 
-    /* Fullscreen Overlay Styles */
     .lyrics-wrapper.fullscreen {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
       z-index: 9999;
       background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
-      margin: 0;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
+      margin: 0; padding: 20px;
+      display: flex; flex-direction: column;
     }
-
-    .lyrics-wrapper.fullscreen .lyrics-container {
-      height: 100%;
-      border-radius: 20px;
-      padding: 40vh 20px;
-    }
-
-    .lyrics-wrapper.fullscreen .lyric-line {
-      font-size: 1.8rem;
-      padding: 12px 20px;
-      margin-bottom: 12px;
-      min-height: 64px;
-    }
-
-    .lyrics-wrapper.fullscreen .lyric-line.active {
-      transform: scale(1.2);
-      text-shadow: 0 0 20px rgba(255, 255, 255, 0.9), 0 0 35px rgba(168, 85, 247, 0.7);
-    }
-
-    .lyrics-wrapper.fullscreen .btn-fullscreen {
-      display: none !important;
-    }
+    .lyrics-wrapper.fullscreen .lyrics-container { height: 100%; border-radius: 20px; padding: 40vh 20px; }
+    .lyrics-wrapper.fullscreen .lyric-line { font-size: 1.8rem; padding: 12px 20px; margin-bottom: 12px; min-height: 64px; }
+    .lyrics-wrapper.fullscreen .lyric-line.active { transform: scale(1.2); text-shadow: 0 0 20px rgba(255, 255, 255, 0.9), 0 0 35px rgba(168, 85, 247, 0.7); }
+    .lyrics-wrapper.fullscreen .btn-fullscreen { display: none !important; }
 
     .offset-control {
       background: rgba(15, 23, 42, 0.5);
@@ -288,33 +183,10 @@
       gap: 10px;
       margin-bottom: 20px;
     }
-
-    .offset-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .offset-title {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      font-weight: 600;
-    }
-
-    .offset-value {
-      font-size: 0.9rem;
-      font-weight: 700;
-      color: var(--accent-lrc);
-      font-family: monospace;
-    }
-
-    .offset-btns {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 6px;
-    }
-
+    .offset-header { display: flex; justify-content: space-between; align-items: center; }
+    .offset-title { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; }
+    .offset-value { font-size: 0.9rem; font-weight: 700; color: var(--accent-lrc); font-family: monospace; }
+    .offset-btns { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
     .btn-offset {
       flex: 1;
       background: rgba(255, 255, 255, 0.08);
@@ -327,177 +199,63 @@
       cursor: pointer;
       text-align: center;
     }
+    .btn-offset:hover { background: rgba(255, 255, 255, 0.15); }
+    .btn-offset.reset { background: rgba(239, 68, 68, 0.15); color: #fca5a5; border-color: rgba(239, 68, 68, 0.3); }
 
-    .btn-offset:hover {
-      background: rgba(255, 255, 255, 0.15);
-    }
+    .progress-section { margin-bottom: 20px; }
+    .time-display { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); margin-top: 6px; }
 
-    .btn-offset.reset {
-      background: rgba(239, 68, 68, 0.15);
-      color: #fca5a5;
-      border-color: rgba(239, 68, 68, 0.3);
-    }
-
-    .progress-section {
-      margin-bottom: 20px;
-    }
-
-    .time-display {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      margin-top: 6px;
-    }
-
-    .controls-main {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-
+    .controls-main { display: flex; gap: 12px; margin-bottom: 20px; }
     .btn-action {
-      flex: 1;
-      padding: 14px;
-      border-radius: 12px;
-      border: none;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
+      flex: 1; padding: 14px; border-radius: 12px; border: none;
+      font-size: 1rem; font-weight: 600; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
     }
+    .btn-play { background: var(--primary); color: white; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4); }
+    .btn-play:disabled { background: rgba(255, 255, 255, 0.1); color: var(--text-muted); box-shadow: none; cursor: not-allowed; }
+    .btn-stop { background: rgba(255, 255, 255, 0.08); color: var(--text-main); border: 1px solid var(--border-color); }
+    .btn-stop:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    .btn-play {
-      background: var(--primary);
-      color: white;
-      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
-    }
+    .mixer-section { display: flex; flex-direction: column; gap: 14px; }
+    .channel { background: rgba(15, 23, 42, 0.5); border-radius: 12px; padding: 14px; border: 1px solid var(--border-color); }
+    .channel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .channel-title { font-size: 0.85rem; font-weight: 600; }
+    .channel-val { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); }
 
-    .btn-play:disabled {
-      background: rgba(255, 255, 255, 0.1);
-      color: var(--text-muted);
-      box-shadow: none;
-      cursor: not-allowed;
-    }
-
-    .btn-stop {
-      background: rgba(255, 255, 255, 0.08);
-      color: var(--text-main);
-      border: 1px solid var(--border-color);
-    }
-
-    .btn-stop:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
-
-    .mixer-section {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-
-    .channel {
-      background: rgba(15, 23, 42, 0.5);
-      border-radius: 12px;
-      padding: 14px;
-      border: 1px solid var(--border-color);
-    }
-
-    .channel-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
-    }
-
-    .channel-title {
-      font-size: 0.85rem;
-      font-weight: 600;
-    }
-
-    .channel-val {
-      font-size: 0.8rem;
-      font-weight: 700;
-      color: var(--text-muted);
-    }
-
-    .slider-wrapper {
-      position: relative;
-      display: flex;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-
-    input[type="range"] {
-      -webkit-appearance: none;
-      width: 100%;
-      height: 8px;
-      border-radius: 4px;
-      background: rgba(255, 255, 255, 0.15);
-      outline: none;
-    }
-
+    .slider-wrapper { position: relative; display: flex; align-items: center; margin-bottom: 10px; }
+    input[type="range"] { -webkit-appearance: none; width: 100%; height: 8px; border-radius: 4px; background: rgba(255, 255, 255, 0.15); outline: none; }
     input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 22px;
-      height: 22px;
-      border-radius: 50%;
-      background: #ffffff;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-      cursor: pointer;
+      -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; background: #ffffff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.4); cursor: pointer;
     }
 
-    .presets {
-      display: flex;
-      gap: 8px;
-    }
-
+    .presets { display: flex; gap: 8px; }
     .btn-preset {
-      flex: 1;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid var(--border-color);
-      color: var(--text-muted);
-      padding: 6px 0;
-      border-radius: 6px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      cursor: pointer;
+      flex: 1; background: rgba(255, 255, 255, 0.06); border: 1px solid var(--border-color);
+      color: var(--text-muted); padding: 6px 0; border-radius: 6px; font-size: 0.75rem; font-weight: 600; cursor: pointer;
     }
+    .btn-preset.active { background: rgba(255, 255, 255, 0.15); color: var(--text-main); border-color: rgba(255, 255, 255, 0.3); }
+    .btn-preset.mute.active { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border-color: rgba(239, 68, 68, 0.4); }
 
-    .btn-preset.active {
-      background: rgba(255, 255, 255, 0.15);
-      color: var(--text-main);
-      border-color: rgba(255, 255, 255, 0.3);
+    .status-bar { margin-top: 18px; text-align: center; font-size: 0.75rem; color: var(--text-muted); }
+    .footer-actions { margin-top: 16px; text-align: center; }
+    .btn-install-app {
+      width: 100%; background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+      color: #ffffff; border: none; padding: 12px 16px; border-radius: 12px;
+      font-size: 0.9rem; font-weight: 600; cursor: pointer;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
-
-    .btn-preset.mute.active {
-      background: rgba(239, 68, 68, 0.2);
-      color: #fca5a5;
-      border-color: rgba(239, 68, 68, 0.4);
-    }
-
-    .status-bar {
-      margin-top: 18px;
-      text-align: center;
-      font-size: 0.75rem;
-      color: var(--text-muted);
-    }
+    .btn-install-app:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(99, 102, 241, 0.6); }
+    .btn-install-app:active { transform: translateY(0); }
   </style>
 </head>
 <body>
 
   <div class="container">
-    
     <header>
       <h1>Karaoke Duo Player</h1>
       <p>Synchronisatie per regel</p>
-      <button id="installAppBtn" class="btn-install-app">
-        📲 App Installeren
-      </button>
     </header>
 
     <div class="file-inputs">
@@ -519,7 +277,6 @@
         <input type="file" id="vocalInput" accept="audio/*">
       </div>
 
-      <!-- Dropdown voor LRC keuze toegevoegd -->
       <div class="file-card loaded" id="lrcCard">
         <div class="file-info">
           <span class="file-label lrc">Karaoke Tekst (.LRC)</span>
@@ -545,17 +302,14 @@
       </div>
     </div>
 
-    <!-- Standaard ingesteld op 1.5s -->
     <div class="offset-control">
       <div class="offset-header">
         <span class="offset-title">⏱️ Tekst Vertraging (Tienden sec.):</span>
         <span class="offset-value" id="offsetDisplay">+1.5s</span>
       </div>
-      
       <div class="slider-wrapper">
         <input type="range" id="offsetSlider" min="-5" max="5" step="0.1" value="1.5">
       </div>
-
       <div class="offset-btns">
         <button class="btn-offset" onclick="adjustOffset(-0.4)">-0.4s</button>
         <button class="btn-offset" onclick="adjustOffset(-0.2)">-0.2s</button>
@@ -614,10 +368,11 @@
       </div>
     </div>
 
-    <div class="status-bar" id="statusBar">
-      Bestanden laden uit rootmap...
-    </div>
+    <div class="status-bar" id="statusBar">Bestanden laden uit rootmap...</div>
 
+    <div class="footer-actions">
+      <button id="installAppBtn" class="btn-install-app">📲 App Installeren</button>
+    </div>
   </div>
 
   <script>
@@ -627,9 +382,7 @@
         self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
         self.addEventListener('fetch', e => e.respondWith(fetch(e.request)));
       `;
-      const blob = new Blob([swCode], { type: 'application/javascript' });
-      const swUrl = URL.createObjectURL(blob);
-      navigator.serviceWorker.register(swUrl).catch(() => {});
+      navigator.serviceWorker.register(URL.createObjectURL(new Blob([swCode], { type: 'application/javascript' }))).catch(() => {});
     }
 
     let deferredPrompt;
@@ -638,40 +391,27 @@
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredPrompt = e;
-      installAppBtn.style.display = 'block';
     });
 
     installAppBtn.addEventListener('click', async () => {
-      if (!deferredPrompt) return;
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        installAppBtn.style.display = 'none';
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') installAppBtn.style.display = 'none';
+        deferredPrompt = null;
+      } else {
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        alert(isIOS 
+          ? "Tik op de 'Delen'-knop in je browser en kies 'Zet op beginbodem' om de app te installeren."
+          : "Tik op de 3 puntjes van je browsermenu (rechtsboven) en kies 'Toevoegen aan startscherm' of 'App installeren'."
+        );
       }
-      deferredPrompt = null;
     });
 
-    window.addEventListener('appinstalled', () => {
-      installAppBtn.style.display = 'none';
-    });
-
-    let audioCtx = null;
-    let musicBuffer = null;
-    let vocalBuffer = null;
-    let musicSource = null;
-    let vocalSource = null;
-
-    let musicGainNode = null;
-    let vocalGainNode = null;
-
-    let isPlaying = false;
-    let startTime = 0;
-    let pauseOffset = 0;
-    let animFrame = null;
-
-    let lyricsData = []; 
-    let activeLineIndex = -1;
-    let userOffset = 1.5; // Standaard vertraging ingesteld op 1.5 seconden
+    let audioCtx = null, musicBuffer = null, vocalBuffer = null;
+    let musicSource = null, vocalSource = null, musicGainNode = null, vocalGainNode = null;
+    let isPlaying = false, startTime = 0, pauseOffset = 0, animFrame = null;
+    let lyricsData = [], activeLineIndex = -1, userOffset = 1.5;
 
     const musicInput = document.getElementById('musicInput');
     const vocalInput = document.getElementById('vocalInput');
@@ -689,8 +429,6 @@
     const durationTimeEl = document.getElementById('durationTime');
     const lyricsContainer = document.getElementById('lyricsContainer');
     const lyricsWrapper = document.getElementById('lyricsWrapper');
-    const fullscreenText = document.getElementById('fullscreenText');
-    const fullscreenIcon = document.getElementById('fullscreenIcon');
     const offsetDisplay = document.getElementById('offsetDisplay');
     const offsetSlider = document.getElementById('offsetSlider');
 
@@ -699,7 +437,6 @@
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         musicGainNode = audioCtx.createGain();
         vocalGainNode = audioCtx.createGain();
-
         musicGainNode.connect(audioCtx.destination);
         vocalGainNode.connect(audioCtx.destination);
       }
@@ -711,67 +448,51 @@
     }
 
     async function decodeAudioFile(file) {
-      const arrayBuffer = await file.arrayBuffer();
-      return await decodeAudioArrayBuffer(arrayBuffer);
+      return await decodeAudioArrayBuffer(await file.arrayBuffer());
     }
 
     function getMaxDuration() {
-      const musicDur = musicBuffer ? musicBuffer.duration : 0;
-      const vocalDur = vocalBuffer ? vocalBuffer.duration : 0;
-      return Math.max(musicDur, vocalDur);
+      return Math.max(musicBuffer?.duration || 0, vocalBuffer?.duration || 0);
     }
 
     function formatTime(sec) {
       if (isNaN(sec)) return "00:00";
-      const m = Math.floor(sec / 60);
-      const s = Math.floor(sec % 60);
+      const m = Math.floor(sec / 60), s = Math.floor(sec % 60);
       return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     }
 
     function toggleFullscreen() {
       if (!document.fullscreenElement && !lyricsWrapper.classList.contains('fullscreen')) {
         if (lyricsWrapper.requestFullscreen) {
-          lyricsWrapper.requestFullscreen().catch(() => {
-            lyricsWrapper.classList.add('fullscreen');
-          });
+          lyricsWrapper.requestFullscreen().catch(() => lyricsWrapper.classList.add('fullscreen'));
         } else {
           lyricsWrapper.classList.add('fullscreen');
         }
-        updateFullscreenUI(true);
+        updateFullscreenUI();
       } else {
-        if (document.exitFullscreen && document.fullscreenElement) {
-          document.exitFullscreen();
-        }
+        if (document.exitFullscreen && document.fullscreenElement) document.exitFullscreen();
         lyricsWrapper.classList.remove('fullscreen');
-        updateFullscreenUI(false);
+        updateFullscreenUI();
       }
     }
 
     document.addEventListener('fullscreenchange', () => {
-      if (!document.fullscreenElement) {
-        lyricsWrapper.classList.remove('fullscreen');
-        updateFullscreenUI(false);
-      } else {
-        lyricsWrapper.classList.add('fullscreen');
-        updateFullscreenUI(true);
-      }
+      lyricsWrapper.classList.toggle('fullscreen', !!document.fullscreenElement);
+      updateFullscreenUI();
     });
 
-    function updateFullscreenUI(isFullscreen) {
+    function updateFullscreenUI() {
       if (activeLineIndex !== -1) {
-        const activeEl = document.getElementById(`line-${activeLineIndex}`);
-        if (activeEl) activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        document.getElementById(`line-${activeLineIndex}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
     }
 
-    // AUTOMATISCH LADEN UIT ROOTMAP
     async function loadDefaultFiles() {
       try {
         statusBar.textContent = "Laden van standaard audio en lyrics...";
         
-        // 1. Muziek spoor laden
         fetch('./Marianne40audio.mp3')
-          .then(res => res.arrayBuffer())
+          .then(res => { if (!res.ok) throw new Error(); return res.arrayBuffer(); })
           .then(async buffer => {
             musicBuffer = await decodeAudioArrayBuffer(buffer);
             document.getElementById('musicName').textContent = "Marianne40audio.mp3";
@@ -779,9 +500,8 @@
             checkReady();
           }).catch(() => { document.getElementById('musicName').textContent = "Mislukt (kies handmatig)"; });
 
-        // 2. Zang spoor laden
-        fetch('./Marianne40vocalsorigineel.mp3')
-          .then(res => res.arrayBuffer())
+        fetch('./Marianne40vocalsoriginal.mp3')
+          .then(res => { if (!res.ok) throw new Error(); return res.arrayBuffer(); })
           .then(async buffer => {
             vocalBuffer = await decodeAudioArrayBuffer(buffer);
             document.getElementById('vocalName').textContent = "Marianne40vocalsoriginal.mp3";
@@ -789,9 +509,7 @@
             checkReady();
           }).catch(() => { document.getElementById('vocalName').textContent = "Mislukt (kies handmatig)"; });
 
-        // 3. Standaard geselecteerde LRC bestand laden
         loadLrcFromUrl(lrcSelect.value);
-
       } catch (err) {
         statusBar.textContent = "Automatisch laden mislukt, kies bestanden handmatig.";
       }
@@ -801,25 +519,18 @@
       fetch('./' + url)
         .then(res => res.text())
         .then(text => parseLRC(text))
-        .catch(() => {
-          lyricsContainer.innerHTML = '<div class="lyric-line">Kon .lrc bestand niet laden</div>';
-        });
+        .catch(() => { lyricsContainer.innerHTML = '<div class="lyric-line">Kon .lrc bestand niet laden</div>'; });
     }
 
-    lrcSelect.addEventListener('change', (e) => {
-      loadLrcFromUrl(e.target.value);
-    });
+    lrcSelect.addEventListener('change', (e) => loadLrcFromUrl(e.target.value));
 
-    // Event listeners voor handmatige bestandskiezer fallback
     musicInput.addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
       document.getElementById('musicName').textContent = file.name;
       document.getElementById('musicCard').classList.add('loaded');
-      try {
-        musicBuffer = await decodeAudioFile(file);
-        checkReady();
-      } catch (err) { statusBar.textContent = "Fout bij laden van muziek."; }
+      try { musicBuffer = await decodeAudioFile(file); checkReady(); } 
+      catch (err) { statusBar.textContent = "Fout bij laden van muziek."; }
     });
 
     vocalInput.addEventListener('change', async (e) => {
@@ -827,39 +538,28 @@
       if (!file) return;
       document.getElementById('vocalName').textContent = file.name;
       document.getElementById('vocalCard').classList.add('loaded');
-      try {
-        vocalBuffer = await decodeAudioFile(file);
-        checkReady();
-      } catch (err) { statusBar.textContent = "Fout bij laden van zang."; }
+      try { vocalBuffer = await decodeAudioFile(file); checkReady(); } 
+      catch (err) { statusBar.textContent = "Fout bij laden van zang."; }
     });
 
     lrcInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
-
       const reader = new FileReader();
-      reader.onload = (event) => { parseLRC(event.target.result); };
+      reader.onload = (event) => parseLRC(event.target.result);
       reader.readAsText(file);
     });
 
     function parseLRC(lrcText) {
       lyricsData = [];
-      const lines = lrcText.split('\n');
       const lineTimeRegex = /^\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)$/;
 
-      lines.forEach(line => {
+      lrcText.split('\n').forEach(line => {
         const lineMatch = lineTimeRegex.exec(line);
         if (lineMatch) {
-          const lineMin = parseInt(lineMatch[1], 10);
-          const lineSec = parseInt(lineMatch[2], 10);
-          const lineMs = parseInt(lineMatch[3].padEnd(3, '0'), 10);
-          const lineTime = lineMin * 60 + lineSec + lineMs / 1000;
-          
+          const time = parseInt(lineMatch[1], 10) * 60 + parseInt(lineMatch[2], 10) + parseInt(lineMatch[3].padEnd(3, '0'), 10) / 1000;
           const cleanText = lineMatch[4].replace(/\[.*?\]/g, '').trim();
-
-          if (cleanText) {
-            lyricsData.push({ time: lineTime, text: cleanText });
-          }
+          if (cleanText) lyricsData.push({ time, text: cleanText });
         }
       });
 
@@ -873,64 +573,38 @@
         lyricsContainer.innerHTML = '<div class="lyric-line">Geen geldige tekst gevonden</div>';
         return;
       }
-
       lyricsData.forEach((line, index) => {
         const div = document.createElement('div');
         div.className = 'lyric-line';
         div.id = `line-${index}`;
         div.textContent = line.text;
-
-        div.addEventListener('click', () => {
-          seekToTime(line.time - userOffset);
-        });
+        div.addEventListener('click', () => seekToTime(line.time - userOffset));
         lyricsContainer.appendChild(div);
       });
     }
 
     function updateOffsetDisplay() {
-      const prefix = userOffset > 0 ? '+' : '';
-      offsetDisplay.textContent = `${prefix}${userOffset.toFixed(1)}s`;
+      offsetDisplay.textContent = `${userOffset > 0 ? '+' : ''}${userOffset.toFixed(1)}s`;
       offsetSlider.value = userOffset;
-      
-      if (audioCtx) {
-        const currentPos = isPlaying ? (audioCtx.currentTime - startTime) : pauseOffset;
-        updateLyricsDisplay(currentPos);
-      }
+      if (audioCtx) updateLyricsDisplay(isPlaying ? (audioCtx.currentTime - startTime) : pauseOffset);
     }
 
-    function adjustOffset(delta) {
-      userOffset = parseFloat((userOffset + delta).toFixed(1));
-      updateOffsetDisplay();
-    }
-
-    function setOffset(val) {
-      userOffset = parseFloat(val);
-      updateOffsetDisplay();
-    }
-
-    offsetSlider.addEventListener('input', (e) => {
-      setOffset(e.target.value);
-    });
+    function adjustOffset(delta) { userOffset = parseFloat((userOffset + delta).toFixed(1)); updateOffsetDisplay(); }
+    function setOffset(val) { userOffset = parseFloat(val); updateOffsetDisplay(); }
+    offsetSlider.addEventListener('input', (e) => setOffset(e.target.value));
 
     function updateLyricsDisplay(currentPos) {
       if (lyricsData.length === 0) return;
-
       const adjustedTime = currentPos - userOffset;
-
       let newLineIndex = -1;
+
       for (let i = 0; i < lyricsData.length; i++) {
-        if (adjustedTime >= lyricsData[i].time) {
-          newLineIndex = i;
-        } else {
-          break;
-        }
+        if (adjustedTime >= lyricsData[i].time) newLineIndex = i;
+        else break;
       }
 
       if (newLineIndex !== activeLineIndex) {
-        if (activeLineIndex !== -1) {
-          const prevEl = document.getElementById(`line-${activeLineIndex}`);
-          if (prevEl) prevEl.classList.remove('active');
-        }
+        if (activeLineIndex !== -1) document.getElementById(`line-${activeLineIndex}`)?.classList.remove('active');
         if (newLineIndex !== -1) {
           const newEl = document.getElementById(`line-${newLineIndex}`);
           if (newEl) {
@@ -955,7 +629,7 @@
 
     function startAudio(offset = 0) {
       initAudio();
-      if (audioCtx.state === 'suspended') { audioCtx.resume(); }
+      if (audioCtx.state === 'suspended') audioCtx.resume();
       stopAudioSources();
 
       const startTimestamp = audioCtx.currentTime + 0.05;
@@ -986,15 +660,11 @@
       const currentPos = audioCtx.currentTime - startTime;
       const totalDur = getMaxDuration();
 
-      if (currentPos >= totalDur) {
-        stopAudio();
-        return;
-      }
+      if (currentPos >= totalDur) { stopAudio(); return; }
 
       seekSlider.value = (currentPos / totalDur) * 100;
       currentTimeEl.textContent = formatTime(currentPos);
       updateLyricsDisplay(currentPos);
-
       animFrame = requestAnimationFrame(updateProgress);
     }
 
@@ -1012,8 +682,10 @@
     });
 
     function stopAudioSources() {
-      if (musicSource) { try { musicSource.stop(); musicSource.disconnect(); } catch(e){} musicSource = null; }
-      if (vocalSource) { try { vocalSource.stop(); vocalSource.disconnect(); } catch(e){} vocalSource = null; }
+      [musicSource, vocalSource].forEach(src => {
+        if (src) { try { src.stop(); src.disconnect(); } catch(e){} }
+      });
+      musicSource = null; vocalSource = null;
     }
 
     function stopAudio() {
@@ -1034,38 +706,33 @@
       seekSlider.value = (pauseOffset / getMaxDuration()) * 100;
       currentTimeEl.textContent = formatTime(pauseOffset);
       updateLyricsDisplay(pauseOffset);
-
-      if (isPlaying) {
-        startAudio(pauseOffset);
-      }
+      if (isPlaying) startAudio(pauseOffset);
     }
 
     seekSlider.addEventListener('input', (e) => {
-      const totalDur = getMaxDuration();
-      const targetTime = (e.target.value / 100) * totalDur;
+      const targetTime = (e.target.value / 100) * getMaxDuration();
       currentTimeEl.textContent = formatTime(targetTime);
       updateLyricsDisplay(targetTime);
     });
 
     seekSlider.addEventListener('change', (e) => {
-      const totalDur = getMaxDuration();
-      pauseOffset = (e.target.value / 100) * totalDur;
-      if (isPlaying) { startAudio(pauseOffset); }
+      pauseOffset = (e.target.value / 100) * getMaxDuration();
+      if (isPlaying) startAudio(pauseOffset);
     });
 
-    vocalVol.addEventListener('input', (e) => { applyVocalVolume(parseFloat(e.target.value)); });
+    vocalVol.addEventListener('input', (e) => applyVocalVolume(parseFloat(e.target.value)));
     musicVol.addEventListener('input', (e) => {
       const val = parseFloat(e.target.value);
-      if (musicGainNode) { musicGainNode.gain.setValueAtTime(val, audioCtx.currentTime); }
+      if (musicGainNode) musicGainNode.gain.setValueAtTime(val, audioCtx.currentTime);
       musicVolVal.textContent = Math.round(val * 100) + '%';
     });
 
     function applyVocalVolume(val) {
-      if (vocalGainNode) { vocalGainNode.gain.setValueAtTime(val, audioCtx.currentTime); }
+      if (vocalGainNode) vocalGainNode.gain.setValueAtTime(val, audioCtx.currentTime);
       vocalVol.value = val;
       vocalVolVal.textContent = Math.round(val * 100) + '%';
       document.querySelectorAll('.presets .btn-preset').forEach(btn => btn.classList.remove('active'));
-      if (val === 0) { document.getElementById('vocalMuteBtn').classList.add('active'); }
+      if (val === 0) document.getElementById('vocalMuteBtn').classList.add('active');
     }
 
     function setVocalPreset(val) { applyVocalVolume(val); }
@@ -1076,10 +743,7 @@
       }
     });
 
-    // Start direct met automatisch laden bij het openen van de pagina
-    window.addEventListener('DOMContentLoaded', () => {
-      loadDefaultFiles();
-    });
+    window.addEventListener('DOMContentLoaded', loadDefaultFiles);
   </script>
 </body>
 </html>
