@@ -1,1006 +1,287 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#0f172a">
-  <title>Karaoke Duo Player + Fullscreen Lyrics</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Karaoke party</title>
+    <script src="https://cdn.jsdelivr.net/npm/spessasynth_lib@2.2.0/dist/spessasynth_lib.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
 
-  <!-- JSZip voor het verwerken van het .kar pakket -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+        .container {
+            background-color: #1e1e1e;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+        }
 
-  <style>
-    :root {
-      --bg-main: #0f172a;
-      --card-bg: rgba(30, 41, 59, 0.7);
-      --primary: #6366f1;
-      --accent-vocal: #ec4899;
-      --accent-music: #06b6d4;
-      --accent-lrc: #a855f7;
-      --text-main: #f8fafc;
-      --text-muted: #94a3b8;
-      --border-color: rgba(255, 255, 255, 0.1);
-      --radius: 16px;
-    }
+        h1 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 28px;
+            color: #00d2ff;
+        }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      -webkit-tap-highlight-color: transparent;
-      user-select: none;
-    }
+        .file-input-wrapper {
+            margin-bottom: 20px;
+        }
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
-      color: var(--text-main);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 20px 16px;
-    }
+        input[type="file"] {
+            display: none;
+        }
 
-    .container {
-      width: 100%;
-      max-width: 480px;
-      background: var(--card-bg);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius);
-      padding: 24px;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
-    }
+        .custom-file-upload {
+            border: 2px solid #00d2ff;
+            display: inline-block;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 6px;
+            background-color: transparent;
+            color: #00d2ff;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
 
-    header { text-align: center; margin-bottom: 20px; }
-    header h1 {
-      font-size: 1.6rem;
-      font-weight: 700;
-      background: linear-gradient(to right, #818cf8, #c084fc);
-      -webkit-text-fill-color: transparent;
-      -webkit-background-clip: text;
-      margin-bottom: 4px;
-    }
-    header p { font-size: 0.85rem; color: var(--text-muted); }
+        .custom-file-upload:hover {
+            background-color: #00d2ff;
+            color: #121212;
+        }
 
-    .kar-actions {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      margin-bottom: 16px;
-    }
+        #track-title {
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #ff007f;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.3em;
+            max-height: 2.6em;
+            word-break: break-word;
+        }
 
-    .btn-zip {
-      width: 100%;
-      background: rgba(255, 255, 255, 0.08);
-      color: var(--text-main);
-      border: 1px solid var(--border-color);
-      padding: 12px;
-      border-radius: 10px;
-      font-size: 0.9rem;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      transition: background 0.2s ease;
-    }
-    .btn-zip:hover { background: rgba(255, 255, 255, 0.15); }
+        /* Afspeellijst styling */
+        .playlist-container {
+            margin-top: 15px;
+            margin-bottom: 20px;
+            text-align: left;
+            display: none;
+        }
 
-    /* Titel en Afbeelding Card */
-    .track-card {
-      background: rgba(15, 23, 42, 0.6);
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      padding: 12px;
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      margin-bottom: 20px;
-    }
-    .track-cover {
-      width: 64px;
-      height: 64px;
-      border-radius: 8px;
-      object-fit: cover;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--border-color);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.5rem;
-      flex-shrink: 0;
-      overflow: hidden;
-    }
-    .track-cover img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    .track-info { overflow: hidden; flex: 1; }
-    .track-title { font-size: 1rem; font-weight: 700; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .track-status { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+        .playlist-container label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #aaa;
+        }
 
-    input[type="file"] { display: none; }
+        .playlist-select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 6px;
+            background-color: #2a2a2a;
+            color: #fff;
+            border: 1px solid #444;
+            outline: none;
+            font-size: 14px;
+            cursor: pointer;
+        }
 
-    .lyrics-wrapper { position: relative; margin-bottom: 12px; }
-    .btn-fullscreen {
-      position: absolute;
-      top: 10px; right: 10px; z-index: 10;
-      background: rgba(15, 23, 42, 0.7);
-      border: 1px solid var(--border-color);
-      color: var(--text-main);
-      padding: 6px 10px;
-      border-radius: 8px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      backdrop-filter: blur(4px);
-      transition: all 0.2s ease;
-    }
-    .btn-fullscreen:hover { background: rgba(255, 255, 255, 0.2); }
+        .playlist-select option {
+            padding: 5px;
+            background-color: #2a2a2a;
+            color: #fff;
+        }
 
-    .btn-close-fullscreen {
-      display: none;
-      position: absolute;
-      top: 16px; right: 16px; z-index: 10000;
-      background: rgba(15, 23, 42, 0.8);
-      border: 1px solid var(--border-color);
-      color: var(--text-main);
-      width: 36px; height: 36px;
-      border-radius: 50%;
-      font-size: 1.2rem;
-      font-weight: bold;
-      cursor: pointer;
-      align-items: center;
-      justify-content: center;
-      backdrop-filter: blur(6px);
-      transition: all 0.2s ease;
-    }
-    .btn-close-fullscreen:hover { background: rgba(239, 68, 68, 0.4); border-color: rgba(239, 68, 68, 0.6); }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
 
-    .lyrics-container {
-      background: rgba(15, 23, 42, 0.8);
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      height: 180px;
-      overflow-y: auto;
-      padding: 60px 16px;
-      text-align: center;
-      scroll-behavior: smooth;
-    }
-    .lyric-line {
-      padding: 8px 12px;
-      font-size: 1.05rem;
-      color: var(--text-muted);
-      cursor: pointer;
-      transition: transform 0.25s ease, color 0.25s ease, text-shadow 0.25s ease;
-      margin-bottom: 6px;
-      line-height: 1.5;
-      min-height: 44px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: transparent;
-      border: none;
-      transform-origin: center center;
-    }
-    .lyric-line.active {
-      font-weight: 700;
-      color: #ffffff;
-      transform: scale(1.15);
-      text-shadow: 0 0 12px rgba(255, 255, 255, 0.8), 0 0 24px rgba(99, 102, 241, 0.6);
-    }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            background-color: #00d2ff;
+            color: #121212;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
 
-    /* Fullscreen Modus Styling */
-    .lyrics-wrapper.fullscreen {
-      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      z-index: 9999;
-      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
-      margin: 0; padding: 20px 20px 0 20px;
-      display: flex; flex-direction: column;
-    }
-    .lyrics-wrapper.fullscreen .lyrics-container { height: 100%; border-radius: 20px; padding: 35vh 20px 180px 20px; }
-    .lyrics-wrapper.fullscreen .lyric-line { font-size: 1.8rem; padding: 12px 20px; margin-bottom: 12px; min-height: 64px; }
-    .lyrics-wrapper.fullscreen .lyric-line.active { transform: scale(1.2); text-shadow: 0 0 20px rgba(255, 255, 255, 0.9), 0 0 35px rgba(168, 85, 247, 0.7); }
-    .lyrics-wrapper.fullscreen .btn-fullscreen { display: none !important; }
-    .lyrics-wrapper.fullscreen .btn-close-fullscreen { display: flex !important; }
+        button:disabled {
+            background-color: #444;
+            color: #888;
+            cursor: not-allowed;
+        }
 
-    /* Inklapbare spelerbalk onderaan Fullscreen */
-    .fs-player-overlay {
-      display: none;
-      position: absolute;
-      bottom: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 100%;
-      max-width: 460px;
-      z-index: 10001;
-      padding: 0 16px calc(16px + env(safe-area-inset-bottom, 0px)) 16px;
-    }
-    .lyrics-wrapper.fullscreen .fs-player-overlay { display: block; }
+        button:hover:not(:disabled) {
+            background-color: #0099cc;
+        }
 
-    .fs-toggle-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(30, 41, 59, 0.95);
-      border: 1px solid var(--border-color);
-      border-bottom: none;
-      color: var(--text-muted);
-      width: 48px;
-      height: 24px;
-      border-radius: 12px 12px 0 0;
-      margin: 0 auto;
-      cursor: pointer;
-      backdrop-filter: blur(8px);
-    }
-    .fs-toggle-btn svg { transition: transform 0.3s ease; }
-    .fs-toggle-btn.collapsed svg { transform: rotate(180deg); }
-
-    .fs-card-inner {
-      background: rgba(15, 23, 42, 0.95);
-      border: 1px solid var(--border-color);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-radius: 20px;
-      padding: 16px;
-      box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.7);
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      transition: max-height 0.35s ease, opacity 0.35s ease, padding 0.35s ease;
-      overflow: hidden;
-      max-height: 300px;
-      opacity: 1;
-    }
-
-    .fs-player-overlay.collapsed .fs-card-inner {
-      max-height: 0;
-      padding: 0 16px;
-      border: none;
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .offset-control {
-      background: rgba(15, 23, 42, 0.5);
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      padding: 12px 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-    .offset-header { display: flex; justify-content: space-between; align-items: center; }
-    .offset-title { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; }
-    .offset-value { font-size: 0.9rem; font-weight: 700; color: var(--accent-lrc); font-family: monospace; }
-    .offset-btns { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
-    .btn-offset {
-      flex: 1;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid var(--border-color);
-      color: var(--text-main);
-      padding: 6px 0;
-      border-radius: 6px;
-      font-size: 0.75rem;
-      font-weight: 700;
-      cursor: pointer;
-      text-align: center;
-    }
-    .btn-offset:hover { background: rgba(255, 255, 255, 0.15); }
-    .btn-offset.reset { background: rgba(239, 68, 68, 0.15); color: #fca5a5; border-color: rgba(239, 68, 68, 0.3); }
-
-    .progress-section { margin-bottom: 20px; }
-    .fs-card-inner .progress-section { margin-bottom: 0; }
-    .time-display { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); margin-top: 6px; font-weight: 600; }
-
-    .controls-main { display: flex; gap: 12px; margin-bottom: 20px; }
-    .fs-card-inner .controls-main { margin-bottom: 0; gap: 10px; }
-    .btn-action {
-      flex: 1; padding: 14px; border-radius: 12px; border: none;
-      font-size: 1rem; font-weight: 600; cursor: pointer;
-      display: flex; align-items: center; justify-content: center; gap: 8px;
-    }
-    .btn-play { background: var(--primary); color: white; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4); }
-    .btn-play:disabled { background: rgba(255, 255, 255, 0.1); color: var(--text-muted); box-shadow: none; cursor: not-allowed; }
-    .btn-stop { background: rgba(255, 255, 255, 0.08); color: var(--text-main); border: 1px solid var(--border-color); }
-    .btn-stop:disabled { opacity: 0.4; cursor: not-allowed; }
-
-    .mixer-section { display: flex; flex-direction: column; gap: 14px; }
-    .channel { background: rgba(15, 23, 42, 0.5); border-radius: 12px; padding: 14px; border: 1px solid var(--border-color); }
-    .fs-card-inner .channel { padding: 10px 12px; }
-    .channel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-    .channel-title { font-size: 0.85rem; font-weight: 600; }
-    .channel-val { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); }
-
-    .slider-wrapper { position: relative; display: flex; align-items: center; margin-bottom: 10px; }
-    .fs-card-inner .slider-wrapper { margin-bottom: 6px; }
-    input[type="range"] { -webkit-appearance: none; width: 100%; height: 8px; border-radius: 4px; background: rgba(255, 255, 255, 0.15); outline: none; }
-    input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; background: #ffffff;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.4); cursor: pointer;
-    }
-
-    .presets { display: flex; gap: 8px; }
-    .btn-preset {
-      flex: 1; background: rgba(255, 255, 255, 0.06); border: 1px solid var(--border-color);
-      color: var(--text-muted); padding: 6px 0; border-radius: 6px; font-size: 0.75rem; font-weight: 600; cursor: pointer;
-    }
-    .btn-preset.active { background: rgba(255, 255, 255, 0.15); color: var(--text-main); border-color: rgba(255, 255, 255, 0.3); }
-    .btn-preset.mute.active { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border-color: rgba(239, 68, 68, 0.4); }
-
-    .status-bar { margin-top: 18px; text-align: center; font-size: 0.75rem; color: var(--text-muted); }
-  </style>
+        #lyrics-display {
+            font-size: 24px;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #2a2a2a;
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px solid #333;
+        }
+    </style>
 </head>
 <body>
 
-  <div class="container">
-    <header>
-      <h1>Karaoke Duo Player</h1>
-      <p>Laad een .KAR nummer in</p>
-    </header>
+    <div class="container">
+        <h1>Karaoke party</h1>
 
-    <div class="kar-actions">
-      <button class="btn-zip" onclick="document.getElementById('zipInput').click()">
-        <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
-        Open .KAR Bestand
-      </button>
-      <input type="file" id="zipInput" accept=".kar,.zip">
-    </div>
-
-    <!-- Nummer Informatie Kaart -->
-    <div class="track-card">
-      <div class="track-cover" id="coverContainer">🎵</div>
-      <div class="track-info">
-        <div class="track-title" id="trackTitle">Geen nummer geladen</div>
-        <div class="track-status" id="trackStatus">Selecteer een .kar bestand om te beginnen</div>
-      </div>
-    </div>
-
-    <div class="lyrics-wrapper" id="lyricsWrapper">
-      <button class="btn-fullscreen" id="fullscreenBtn" onclick="toggleFullscreen()">
-        <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
-        </svg>
-        <span>Volledig scherm</span>
-      </button>
-
-      <button class="btn-close-fullscreen" id="closeFullscreenBtn" onclick="toggleFullscreen()" title="Sluiten">✕</button>
-
-      <div class="lyrics-container" id="lyricsContainer">
-        <div class="lyric-line">Kies een .kar bestand om te starten...</div>
-      </div>
-
-      <!-- INKLAPBARE SPELER IN FULLSCREEN -->
-      <div class="fs-player-overlay" id="fsPlayerOverlay">
-        <button class="fs-toggle-btn" id="fsToggleBtn" onclick="toggleFsPanel(event)">
-          <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/>
-          </svg>
-        </button>
-
-        <div class="fs-card-inner">
-          <div class="progress-section">
-            <input type="range" id="fsSeekSlider" min="0" max="100" value="0" disabled>
-            <div class="time-display">
-              <span id="fsCurrentTime">00:00</span>
-              <span id="fsDurationTime">00:00</span>
-            </div>
-          </div>
-
-          <div class="controls-main">
-            <button id="fsPlayBtn" class="btn-action btn-play" disabled>
-              <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-              Afspelen
-            </button>
-            <button id="fsStopBtn" class="btn-action btn-stop" disabled>
-              <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>
-              Stop
-            </button>
-          </div>
-
-          <div class="channel">
-            <div class="channel-header">
-              <span class="channel-title" style="color: var(--accent-vocal);">🎤 Zang Volume</span>
-              <span class="channel-val" id="fsVocalVolVal">100%</span>
-            </div>
-            <div class="slider-wrapper">
-              <input type="range" id="fsVocalVol" min="0" max="1" step="0.01" value="1">
-            </div>
-            <div class="presets">
-              <button class="btn-preset mute" id="fsVocalMuteBtn" onclick="setVocalPreset(0)">Mute</button>
-              <button class="btn-preset" onclick="setVocalPreset(0.3)">30%</button>
-              <button class="btn-preset" onclick="setVocalPreset(0.7)">70%</button>
-              <button class="btn-preset active" id="fsPreset100" onclick="setVocalPreset(1.0)">100%</button>
-            </div>
-          </div>
+        <div class="file-input-wrapper">
+            <label for="file-input" class="custom-file-upload">
+                Selecteer bestanden
+            </label>
+            <input id="file-input" type="file" accept=".kar,.mid,.midi" multiple />
         </div>
-      </div>
+
+        <div class="playlist-container" id="playlist-wrapper">
+            <label for="playlist-select">Kies een nummer uit de lijst:</label>
+            <select id="playlist-select" class="playlist-select"></select>
+        </div>
+
+        <div id="track-title">Geen nummer geladen</div>
+
+        <div class="controls">
+            <button id="btn-play" disabled>Speel af</button>
+            <button id="btn-pause" disabled>Pauze</button>
+            <button id="btn-stop" disabled>Stop</button>
+        </div>
+
+        <div id="lyrics-display">
+            ---
+        </div>
     </div>
 
-    <div class="offset-control">
-      <div class="offset-header">
-        <span class="offset-title">⏱️ Tekst Vertraging:</span>
-        <span class="offset-value" id="offsetDisplay">+0.0s</span>
-      </div>
-      <div class="slider-wrapper">
-        <input type="range" id="offsetSlider" min="-10" max="10" step="0.1" value="0.0">
-      </div>
-      <div class="offset-btns">
-        <button class="btn-offset" onclick="adjustOffset(-0.4)">-0.4s</button>
-        <button class="btn-offset" onclick="adjustOffset(-0.2)">-0.2s</button>
-        <button class="btn-offset" onclick="adjustOffset(-0.1)">-0.1s</button>
-        <button class="btn-offset reset" onclick="setOffset(0.0)">0.0s</button>
-        <button class="btn-offset" onclick="adjustOffset(0.1)">+0.1s</button>
-        <button class="btn-offset" onclick="adjustOffset(0.2)">+0.2s</button>
-        <button class="btn-offset" onclick="adjustOffset(0.4)">+0.4s</button>
-      </div>
-    </div>
+    <script>
+        let synth = null;
+        let seq = null;
+        let isInitialized = false;
+        let playlist = [];
 
-    <div class="progress-section">
-      <input type="range" id="seekSlider" min="0" max="100" value="0" disabled>
-      <div class="time-display">
-        <span id="currentTime">00:00</span>
-        <span id="durationTime">00:00</span>
-      </div>
-    </div>
+        const fileInput = document.getElementById('file-input');
+        const playlistWrapper = document.getElementById('playlist-wrapper');
+        const playlistSelect = document.getElementById('playlist-select');
+        const trackTitle = document.getElementById('track-title');
+        const btnPlay = document.getElementById('btn-play');
+        const btnPause = document.getElementById('btn-pause');
+        const btnStop = document.getElementById('btn-stop');
+        const lyricsDisplay = document.getElementById('lyrics-display');
 
-    <div class="controls-main">
-      <button id="playBtn" class="btn-action btn-play" disabled>
-        <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-        Afspelen
-      </button>
-      <button id="stopBtn" class="btn-action btn-stop" disabled>
-        <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>
-        Stop
-      </button>
-    </div>
+        async function initEngine() {
+            if (isInitialized) return;
+            
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Laden van Default SoundFont via SpessaSynth
+            const sfResponse = await fetch("https://cdn.jsdelivr.net/gh/spessasymphony/Soundfont@main/GeneralUserGS.sf2");
+            const sfArrayBuffer = await sfResponse.arrayBuffer();
+            
+            synth = new SpessaSynth.Synthesizer(audioCtx.destination, sfArrayBuffer);
+            seq = new SpessaSynth.Sequencer(synth);
+            
+            // Lyrics callback koppelen
+            seq.onText = (text, type) => {
+                if (text) {
+                    lyricsDisplay.textContent = text;
+                }
+            };
 
-    <div class="mixer-section">
-      <div class="channel">
-        <div class="channel-header">
-          <span class="channel-title" style="color: var(--accent-vocal);">🎤 Zang Volume</span>
-          <span class="channel-val" id="vocalVolVal">100%</span>
-        </div>
-        <div class="slider-wrapper">
-          <input type="range" id="vocalVol" min="0" max="1" step="0.01" value="1">
-        </div>
-        <div class="presets">
-          <button class="btn-preset mute" id="vocalMuteBtn" onclick="setVocalPreset(0)">Mute</button>
-          <button class="btn-preset" onclick="setVocalPreset(0.3)">30%</button>
-          <button class="btn-preset" onclick="setVocalPreset(0.7)">70%</button>
-          <button class="btn-preset active" id="mainPreset100" onclick="setVocalPreset(1.0)">100%</button>
-        </div>
-      </div>
-
-      <div class="channel">
-        <div class="channel-header">
-          <span class="channel-title" style="color: var(--accent-music);">🎵 Muziek Volume</span>
-          <span class="channel-val" id="musicVolVal">100%</span>
-        </div>
-        <div class="slider-wrapper">
-          <input type="range" id="musicVol" min="0" max="1" step="0.01" value="1">
-        </div>
-      </div>
-    </div>
-
-    <div class="status-bar" id="statusBar">Upload een .kar bestand om te beginnen.</div>
-  </div>
-
-  <script>
-    const APP_SECRET_KEY = "MijnUniekeKaraokeSleutel2026!";
-
-    function scrambleBuffer(arrayBuffer, key) {
-      const uint8 = new Uint8Array(arrayBuffer);
-      const keyLength = key.length;
-      for (let i = 0; i < uint8.length; i++) {
-        uint8[i] ^= key.charCodeAt(i % keyLength);
-      }
-      return uint8.buffer;
-    }
-
-    let audioCtx = null, musicBuffer = null, vocalBuffer = null;
-    let musicSource = null, vocalSource = null, musicGainNode = null, vocalGainNode = null;
-    let isPlaying = false, startTime = 0, pauseOffset = 0, animFrame = null;
-    let lyricsData = [], activeLineIndex = -1;
-    
-    const savedOffset = localStorage.getItem('karaoke_userOffset');
-    let userOffset = savedOffset !== null ? parseFloat(savedOffset) : 0.0;
-    let isUserSeeking = false;
-
-    const zipInput = document.getElementById('zipInput');
-    const playBtn = document.getElementById('playBtn');
-    const stopBtn = document.getElementById('stopBtn');
-    const fsPlayBtn = document.getElementById('fsPlayBtn');
-    const fsStopBtn = document.getElementById('fsStopBtn');
-
-    const musicVol = document.getElementById('musicVol');
-    const vocalVol = document.getElementById('vocalVol');
-    const fsVocalVol = document.getElementById('fsVocalVol');
-    const musicVolVal = document.getElementById('musicVolVal');
-    const vocalVolVal = document.getElementById('vocalVolVal');
-    const fsVocalVolVal = document.getElementById('fsVocalVolVal');
-
-    const statusBar = document.getElementById('statusBar');
-    const seekSlider = document.getElementById('seekSlider');
-    const fsSeekSlider = document.getElementById('fsSeekSlider');
-    const currentTimeEl = document.getElementById('currentTime');
-    const durationTimeEl = document.getElementById('durationTime');
-    const fsCurrentTimeEl = document.getElementById('fsCurrentTime');
-    const fsDurationTimeEl = document.getElementById('fsDurationTime');
-
-    const lyricsContainer = document.getElementById('lyricsContainer');
-    const lyricsWrapper = document.getElementById('lyricsWrapper');
-    const offsetDisplay = document.getElementById('offsetDisplay');
-    const offsetSlider = document.getElementById('offsetSlider');
-
-    const fsPlayerOverlay = document.getElementById('fsPlayerOverlay');
-    const fsToggleBtn = document.getElementById('fsToggleBtn');
-
-    function toggleFsPanel(e) {
-      if (e) e.stopPropagation();
-      fsPlayerOverlay.classList.toggle('collapsed');
-      fsToggleBtn.classList.toggle('collapsed');
-    }
-
-    function initAudio() {
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        musicGainNode = audioCtx.createGain();
-        vocalGainNode = audioCtx.createGain();
-        musicGainNode.connect(audioCtx.destination);
-        vocalGainNode.connect(audioCtx.destination);
-      }
-    }
-
-    async function decodeAudioArrayBuffer(arrayBuffer) {
-      initAudio();
-      return await audioCtx.decodeAudioData(arrayBuffer);
-    }
-
-    function getMaxDuration() {
-      return Math.max(musicBuffer?.duration || 0, vocalBuffer?.duration || 0);
-    }
-
-    function formatTime(sec) {
-      if (isNaN(sec)) return "00:00";
-      const m = Math.floor(sec / 60), s = Math.floor(sec % 60);
-      return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-    }
-
-    function toggleFullscreen() {
-      if (!document.fullscreenElement && !lyricsWrapper.classList.contains('fullscreen')) {
-        if (lyricsWrapper.requestFullscreen) {
-          lyricsWrapper.requestFullscreen().catch(() => lyricsWrapper.classList.add('fullscreen'));
-        } else {
-          lyricsWrapper.classList.add('fullscreen');
-        }
-      } else {
-        if (document.exitFullscreen && document.fullscreenElement) document.exitFullscreen();
-        lyricsWrapper.classList.remove('fullscreen');
-      }
-    }
-
-    document.addEventListener('fullscreenchange', () => {
-      lyricsWrapper.classList.toggle('fullscreen', !!document.fullscreenElement);
-    });
-
-    // Inlezen van de .KAR (met ontsleuteling en Zip verwerking)
-    zipInput.addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      statusBar.textContent = "KAR-bestand inladen...";
-      
-      let cleanTitle = file.name.replace(/\.(kar|zip)$/i, '').replace(/_/g, ' ');
-      document.getElementById('trackTitle').textContent = cleanTitle;
-      document.getElementById('trackStatus').textContent = "Pakket verwerken...";
-
-      try {
-        const rawBuffer = await file.arrayBuffer();
-        
-        let zipBuffer = scrambleBuffer(rawBuffer.slice(0), APP_SECRET_KEY);
-        let zip = null;
-
-        try {
-          zip = await JSZip.loadAsync(zipBuffer);
-        } catch(err) {
-          try {
-            zip = await JSZip.loadAsync(rawBuffer);
-          } catch(err2) {
-            zip = null;
-          }
+            isInitialized = true;
         }
 
-        musicBuffer = null; vocalBuffer = null; lyricsData = [];
-        let extractedCoverUrl = null;
+        fileInput.addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
 
-        if (zip) {
-          // 1. Zoek naar afbeeldingen
-          for (const filename of Object.keys(zip.files)) {
-            const lower = filename.toLowerCase();
-            if (lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.png') || lower.endsWith('.webp')) {
-              const imgData = await zip.files[filename].async('uint8array');
-              const mime = lower.endsWith('.png') ? 'image/png' : 'image/jpeg';
-              extractedCoverUrl = `data:${mime};base64,` + bufferToBase64(imgData);
-              break;
+            playlist = files;
+            playlistSelect.innerHTML = '';
+
+            playlist.forEach((file, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = file.name;
+                playlistSelect.appendChild(option);
+            });
+
+            playlistWrapper.style.display = 'block';
+
+            // Laad het eerste nummer in de lijst
+            playlistSelect.selectedIndex = 0;
+            await loadSelectedTrack(0);
+        });
+
+        playlistSelect.addEventListener('change', async (e) => {
+            const selectedIndex = parseInt(e.target.value, 10);
+            await loadSelectedTrack(selectedIndex);
+        });
+
+        async function loadSelectedTrack(index) {
+            const file = playlist[index];
+            if (!file) return;
+
+            if (!isInitialized) {
+                await initEngine();
             }
-          }
 
-          // 2. Sorteer bestanden om consistente verwerking te garanderen
-          const filenames = Object.keys(zip.files).sort();
+            const arrayBuffer = await file.arrayBuffer();
+            
+            // Laad MIDI/KAR in de sequencer
+            seq.loadMIDI(arrayBuffer);
+            
+            trackTitle.textContent = file.name;
+            lyricsDisplay.textContent = "Klaar voor afspelen...";
 
-          // Eerst songteksten verwerken
-          for (const filename of filenames) {
-            const zipEntry = zip.files[filename];
-            if (zipEntry.dir) continue;
-            const lowerName = filename.toLowerCase();
-            if (lowerName.endsWith(".lrc") || lowerName.endsWith(".txt")) {
-              const lrcText = await zipEntry.async('string');
-              parseLRC(lrcText);
+            btnPlay.disabled = false;
+            btnPause.disabled = false;
+            btnStop.disabled = false;
+        }
+
+        btnPlay.addEventListener('click', () => {
+            if (seq) {
+                seq.play();
             }
-          }
+        });
 
-          // Audiobestanden flexibel toewijzen
-          for (const filename of filenames) {
-            const zipEntry = zip.files[filename];
-            if (zipEntry.dir) continue;
-
-            const lowerName = filename.toLowerCase();
-            const isAudio = lowerName.endsWith(".mp3") || lowerName.endsWith(".wav") || lowerName.endsWith(".ogg") || lowerName.endsWith(".m4a");
-
-            if (isAudio) {
-              const data = await zipEntry.async('arraybuffer');
-              if (!extractedCoverUrl) extractedCoverUrl = parseID3Cover(new Uint8Array(data));
-
-              // Als het expliciet als zang aangeduid staat
-              if (lowerName.includes("vocal") || lowerName.includes("zang")) {
-                vocalBuffer = await decodeAudioArrayBuffer(data);
-              } 
-              // Anders als muziektoewijzing (eerste gevonden audio of expliciete music/instrumental)
-              else if (!musicBuffer) {
-                musicBuffer = await decodeAudioArrayBuffer(data);
-              } 
-              // Tweede niet-gelabelde audio wordt zang
-              else if (!vocalBuffer) {
-                vocalBuffer = await decodeAudioArrayBuffer(data);
-              }
+        btnPause.addEventListener('click', () => {
+            if (seq) {
+                seq.pause();
             }
-          }
-        }
+        });
 
-        // 3. Fallback: Afbeelding in binary zoeken
-        if (!extractedCoverUrl) {
-          extractedCoverUrl = parseEmbeddedImage(new Uint8Array(rawBuffer));
-        }
-
-        const coverContainer = document.getElementById('coverContainer');
-        if (extractedCoverUrl) {
-          coverContainer.innerHTML = `<img src="${extractedCoverUrl}" alt="Cover">`;
-        } else {
-          coverContainer.textContent = "🎵";
-        }
-
-        checkReady();
-        document.getElementById('trackStatus').textContent = "Nummer geladen";
-        statusBar.textContent = "Klaar om af te spelen!";
-      } catch (err) {
-        console.error(err);
-        statusBar.textContent = "Fout bij inladen van KAR-bestand.";
-        document.getElementById('trackStatus').textContent = "Kan bestand niet verwerken";
-      }
-    });
-
-    function parseID3Cover(bytes) {
-      if (bytes.length < 10 || bytes[0] !== 0x49 || bytes[1] !== 0x44 || bytes[2] !== 0x33) return null;
-      let offset = 10;
-      const totalSize = ((bytes[6] & 0x7f) << 21) | ((bytes[7] & 0x7f) << 14) | ((bytes[8] & 0x7f) << 7) | (bytes[9] & 0x7f);
-
-      while (offset < totalSize && offset < bytes.length - 10) {
-        const frameID = String.fromCharCode(bytes[offset], bytes[offset+1], bytes[offset+2], bytes[offset+3]);
-        const frameSize = (bytes[offset+4] << 24) | (bytes[offset+5] << 16) | (bytes[offset+6] << 8) | bytes[offset+7];
-        
-        if (frameID === "APIC") {
-          let imgStart = offset + 10;
-          let mimeEnd = imgStart + 1;
-          while (bytes[mimeEnd] !== 0 && mimeEnd < offset + 10 + frameSize) mimeEnd++;
-          
-          let mime = "image/jpeg";
-          const mimeStr = String.fromCharCode(...bytes.subarray(imgStart + 1, mimeEnd));
-          if (mimeStr.includes("png")) mime = "image/png";
-
-          let pictureDataStart = mimeEnd + 2;
-          while (bytes[pictureDataStart] !== 0 && pictureDataStart < offset + 10 + frameSize) pictureDataStart++;
-          pictureDataStart++;
-
-          const imgBuffer = bytes.subarray(pictureDataStart, offset + 10 + frameSize);
-          return `data:${mime};base64,` + bufferToBase64(imgBuffer);
-        }
-        offset += 10 + frameSize;
-      }
-      return null;
-    }
-
-    function parseEmbeddedImage(bytes) {
-      for (let i = 0; i < bytes.length - 3; i++) {
-        if (bytes[i] === 0xFF && bytes[i+1] === 0xD8 && bytes[i+2] === 0xFF) {
-          let end = -1;
-          for (let j = i + 2; j < bytes.length - 1; j++) {
-            if (bytes[j] === 0xFF && bytes[j+1] === 0xD9) { end = j + 2; break; }
-          }
-          if (end !== -1 && (end - i) > 2000) return 'data:image/jpeg;base64,' + bufferToBase64(bytes.subarray(i, end));
-        }
-      }
-      for (let i = 0; i < bytes.length - 8; i++) {
-        if (bytes[i] === 0x89 && bytes[i+1] === 0x50 && bytes[i+2] === 0x4E && bytes[i+3] === 0x47) {
-          for (let j = i; j < bytes.length - 4; j++) {
-            if (bytes[j] === 0x49 && bytes[j+1] === 0x45 && bytes[j+2] === 0x42 && bytes[j+3] === 0x44) {
-              return 'data:image/png;base64,' + bufferToBase64(bytes.subarray(i, j + 8));
+        btnStop.addEventListener('click', () => {
+            if (seq) {
+                seq.stop();
+                lyricsDisplay.textContent = "---";
             }
-          }
-        }
-      }
-      return null;
-    }
-
-    function bufferToBase64(bytes) {
-      let binary = '';
-      const len = bytes.byteLength;
-      for (let i = 0; i < len; i++) binary += String.fromCharCode(bytes[i]);
-      return window.btoa(binary);
-    }
-
-    function parseLRC(lrcText) {
-      lyricsData = [];
-      const lineTimeRegex = /^\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)$/;
-
-      lrcText.split('\n').forEach(line => {
-        const lineMatch = lineTimeRegex.exec(line.trim());
-        if (lineMatch) {
-          const time = parseInt(lineMatch[1], 10) * 60 + parseInt(lineMatch[2], 10) + parseInt(lineMatch[3].padEnd(3, '0'), 10) / 1000;
-          const cleanText = lineMatch[4].replace(/\[.*?\]/g, '').trim();
-          if (cleanText) lyricsData.push({ time, text: cleanText });
-        }
-      });
-
-      lyricsData.sort((a, b) => a.time - b.time);
-      renderLyrics();
-    }
-
-    function renderLyrics() {
-      lyricsContainer.innerHTML = '';
-      if (lyricsData.length === 0) {
-        lyricsContainer.innerHTML = '<div class="lyric-line">Geen songtekst aanwezig</div>';
-        return;
-      }
-      lyricsData.forEach((line, index) => {
-        const div = document.createElement('div');
-        div.className = 'lyric-line';
-        div.id = `line-${index}`;
-        div.textContent = line.text;
-        div.addEventListener('click', () => seekToTime(line.time - userOffset));
-        lyricsContainer.appendChild(div);
-      });
-    }
-
-    function updateOffsetDisplay() {
-      offsetDisplay.textContent = `${userOffset >= 0 ? '+' : ''}${userOffset.toFixed(1)}s`;
-      offsetSlider.value = userOffset;
-      localStorage.setItem('karaoke_userOffset', userOffset);
-      if (audioCtx) updateLyricsDisplay(isPlaying ? (audioCtx.currentTime - startTime) : pauseOffset);
-    }
-
-    function adjustOffset(delta) { userOffset = parseFloat((userOffset + delta).toFixed(1)); updateOffsetDisplay(); }
-    function setOffset(val) { userOffset = parseFloat(val); updateOffsetDisplay(); }
-    offsetSlider.addEventListener('input', (e) => setOffset(e.target.value));
-
-    function updateLyricsDisplay(currentPos) {
-      if (lyricsData.length === 0) return;
-      const adjustedTime = currentPos - userOffset;
-      let newLineIndex = -1;
-
-      for (let i = 0; i < lyricsData.length; i++) {
-        if (adjustedTime >= lyricsData[i].time) newLineIndex = i;
-        else break;
-      }
-
-      if (newLineIndex !== activeLineIndex) {
-        if (activeLineIndex !== -1) document.getElementById(`line-${activeLineIndex}`)?.classList.remove('active');
-        if (newLineIndex !== -1) {
-          const newEl = document.getElementById(`line-${newLineIndex}`);
-          if (newEl) {
-            newEl.classList.add('active');
-            newEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }
-        }
-        activeLineIndex = newLineIndex;
-      }
-    }
-
-    function checkReady() {
-      const duration = getMaxDuration();
-      if (duration > 0) {
-        playBtn.disabled = false; stopBtn.disabled = false; seekSlider.disabled = false;
-        fsPlayBtn.disabled = false; fsStopBtn.disabled = false; fsSeekSlider.disabled = false;
-        
-        const formatted = formatTime(duration);
-        durationTimeEl.textContent = formatted;
-        fsDurationTimeEl.textContent = formatted;
-      }
-    }
-
-    function startAudio(offset = 0) {
-      initAudio();
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-      stopAudioSources();
-
-      const startTimestamp = audioCtx.currentTime + 0.05;
-
-      if (musicBuffer) {
-        musicSource = audioCtx.createBufferSource();
-        musicSource.buffer = musicBuffer;
-        musicSource.connect(musicGainNode);
-        musicSource.start(startTimestamp, offset);
-      }
-
-      if (vocalBuffer) {
-        vocalSource = audioCtx.createBufferSource();
-        vocalSource.buffer = vocalBuffer;
-        vocalSource.connect(vocalGainNode);
-        vocalSource.start(startTimestamp, offset);
-      }
-
-      startTime = audioCtx.currentTime - offset;
-      isPlaying = true;
-
-      const pauseBtnHtml = `<svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg> Pauze`;
-      playBtn.innerHTML = pauseBtnHtml;
-      fsPlayBtn.innerHTML = pauseBtnHtml;
-      statusBar.textContent = "Speelt af...";
-      updateProgress();
-    }
-
-    function updateProgress() {
-      if (!isPlaying) return;
-      const currentPos = audioCtx.currentTime - startTime;
-      const totalDur = getMaxDuration();
-
-      if (currentPos >= totalDur) { stopAudio(); return; }
-
-      if (!isUserSeeking) {
-        const val = (currentPos / totalDur) * 100;
-        seekSlider.value = val;
-        fsSeekSlider.value = val;
-        
-        const formattedTime = formatTime(currentPos);
-        currentTimeEl.textContent = formattedTime;
-        fsCurrentTimeEl.textContent = formattedTime;
-
-        updateLyricsDisplay(currentPos);
-      }
-      animFrame = requestAnimationFrame(updateProgress);
-    }
-
-    function togglePlayPause() {
-      if (isPlaying) {
-        pauseOffset = audioCtx.currentTime - startTime;
-        stopAudioSources();
-        isPlaying = false;
-        cancelAnimationFrame(animFrame);
-        
-        const resumeBtnHtml = `<svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> Hervatten`;
-        playBtn.innerHTML = resumeBtnHtml;
-        fsPlayBtn.innerHTML = resumeBtnHtml;
-        statusBar.textContent = "Gepauzeerd.";
-      } else {
-        startAudio(pauseOffset);
-      }
-    }
-
-    playBtn.addEventListener('click', togglePlayPause);
-    fsPlayBtn.addEventListener('click', togglePlayPause);
-
-    function stopAudioSources() {
-      [musicSource, vocalSource].forEach(src => {
-        if (src) { try { src.stop(); src.disconnect(); } catch(e){} }
-      });
-      musicSource = null; vocalSource = null;
-    }
-
-    function stopAudio() {
-      stopAudioSources();
-      isPlaying = false;
-      pauseOffset = 0;
-      cancelAnimationFrame(animFrame);
-      
-      seekSlider.value = 0; fsSeekSlider.value = 0;
-      currentTimeEl.textContent = "00:00"; fsCurrentTimeEl.textContent = "00:00";
-      
-      const playBtnHtml = `<svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> Afspelen`;
-      playBtn.innerHTML = playBtnHtml;
-      fsPlayBtn.innerHTML = playBtnHtml;
-      statusBar.textContent = "Gestopt.";
-    }
-
-    stopBtn.addEventListener('click', stopAudio);
-    fsStopBtn.addEventListener('click', stopAudio);
-
-    function seekToTime(targetTime) {
-      pauseOffset = Math.max(0, targetTime);
-      const val = (pauseOffset / getMaxDuration()) * 100;
-      seekSlider.value = val; fsSeekSlider.value = val;
-      
-      const formattedTime = formatTime(pauseOffset);
-      currentTimeEl.textContent = formattedTime;
-      fsCurrentTimeEl.textContent = formattedTime;
-
-      updateLyricsDisplay(pauseOffset);
-      if (isPlaying) startAudio(pauseOffset);
-    }
-
-    function setupSeekEvents(slider) {
-      slider.addEventListener('mousedown', () => { isUserSeeking = true; });
-      slider.addEventListener('touchstart', () => { isUserSeeking = true; });
-
-      slider.addEventListener('input', (e) => {
-        const targetTime = (e.target.value / 100) * getMaxDuration();
-        const formattedTime = formatTime(targetTime);
-        currentTimeEl.textContent = formattedTime;
-        fsCurrentTimeEl.textContent = formattedTime;
-        seekSlider.value = e.target.value;
-        fsSeekSlider.value = e.target.value;
-        updateLyricsDisplay(targetTime);
-      });
-
-      slider.addEventListener('change', (e) => {
-        isUserSeeking = false;
-        pauseOffset = (e.target.value / 100) * getMaxDuration();
-        if (isPlaying) startAudio(pauseOffset);
-      });
-    }
-
-    setupSeekEvents(seekSlider);
-    setupSeekEvents(fsSeekSlider);
-
-    vocalVol.addEventListener('input', (e) => applyVocalVolume(parseFloat(e.target.value)));
-    fsVocalVol.addEventListener('input', (e) => applyVocalVolume(parseFloat(e.target.value)));
-
-    musicVol.addEventListener('input', (e) => {
-      const val = parseFloat(e.target.value);
-      if (musicGainNode) musicGainNode.gain.setValueAtTime(val, audioCtx.currentTime);
-      musicVolVal.textContent = Math.round(val * 100) + '%';
-    });
-
-    function applyVocalVolume(val) {
-      if (vocalGainNode) vocalGainNode.gain.setValueAtTime(val, audioCtx.currentTime);
-      vocalVol.value = val; fsVocalVol.value = val;
-      const text = Math.round(val * 100) + '%';
-      vocalVolVal.textContent = text; fsVocalVolVal.textContent = text;
-
-      document.querySelectorAll('.presets .btn-preset').forEach(btn => btn.classList.remove('active'));
-      if (val === 0) {
-        document.getElementById('vocalMuteBtn')?.classList.add('active');
-        document.getElementById('fsVocalMuteBtn')?.classList.add('active');
-      } else if (val === 1.0) {
-        document.getElementById('mainPreset100')?.classList.add('active');
-        document.getElementById('fsPreset100')?.classList.add('active');
-      }
-    }
-
-    function setVocalPreset(val) { applyVocalVolume(val); }
-
-    window.addEventListener('DOMContentLoaded', () => {
-      updateOffsetDisplay();
-    });
-  </script>
+        });
+    </script>
 </body>
 </html>
