@@ -4,8 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Karaoke party</title>
-    <script src="https://cdn.jsdelivr.net/npm/spessasynth_lib@2.2.0/dist/spessasynth_lib.min.js"></script>
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             font-family: Arial, sans-serif;
             background-color: #121212;
@@ -17,7 +20,6 @@
             min-height: 100vh;
             margin: 0;
             padding: 20px;
-            box-sizing: border-box;
         }
 
         .container {
@@ -76,7 +78,6 @@
             word-break: break-word;
         }
 
-        /* Afspeellijst styling */
         .playlist-container {
             margin-top: 15px;
             margin-bottom: 20px;
@@ -101,12 +102,6 @@
             outline: none;
             font-size: 14px;
             cursor: pointer;
-        }
-
-        .playlist-select option {
-            padding: 5px;
-            background-color: #2a2a2a;
-            color: #fff;
         }
 
         .controls {
@@ -138,8 +133,8 @@
         }
 
         #lyrics-display {
-            font-size: 24px;
-            min-height: 80px;
+            font-size: 22px;
+            min-height: 90px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -147,6 +142,8 @@
             border-radius: 8px;
             padding: 15px;
             border: 1px solid #333;
+            text-align: center;
+            line-height: 1.4;
         }
     </style>
 </head>
@@ -159,7 +156,7 @@
             <label for="file-input" class="custom-file-upload">
                 Selecteer bestanden
             </label>
-            <input id="file-input" type="file" accept=".kar,.mid,.midi" multiple />
+            <input id="file-input" type="file" accept="audio/*,.lrc" multiple />
         </div>
 
         <div class="playlist-container" id="playlist-wrapper">
@@ -175,17 +172,12 @@
             <button id="btn-stop" disabled>Stop</button>
         </div>
 
-        <div id="lyrics-display">
-            ---
-        </div>
+        <div id="lyrics-display">---</div>
     </div>
 
-    <script>
-        let synth = null;
-        let seq = null;
-        let isInitialized = false;
-        let playlist = [];
+    <audio id="audio-player"></audio>
 
+    <script>
         const fileInput = document.getElementById('file-input');
         const playlistWrapper = document.getElementById('playlist-wrapper');
         const playlistSelect = document.getElementById('playlist-select');
@@ -194,94 +186,127 @@
         const btnPause = document.getElementById('btn-pause');
         const btnStop = document.getElementById('btn-stop');
         const lyricsDisplay = document.getElementById('lyrics-display');
+        const audioPlayer = document.getElementById('audio-player');
 
-        async function initEngine() {
-            if (isInitialized) return;
-            
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            
-            // Laden van Default SoundFont via SpessaSynth
-            const sfResponse = await fetch("https://cdn.jsdelivr.net/gh/spessasymphony/Soundfont@main/GeneralUserGS.sf2");
-            const sfArrayBuffer = await sfResponse.arrayBuffer();
-            
-            synth = new SpessaSynth.Synthesizer(audioCtx.destination, sfArrayBuffer);
-            seq = new SpessaSynth.Sequencer(synth);
-            
-            // Lyrics callback koppelen
-            seq.onText = (text, type) => {
-                if (text) {
-                    lyricsDisplay.textContent = text;
-                }
-            };
+        let playlist = [];
+        let lyrics = [];
+        let lyricTimer = null;
 
-            isInitialized = true;
-        }
-
-        fileInput.addEventListener('change', async (e) => {
+        fileInput.addEventListener('change', (e) => {
             const files = Array.from(e.target.files);
             if (files.length === 0) return;
 
-            playlist = files;
-            playlistSelect.innerHTML = '';
+            // Scheid audio bestanden van eventuele losse LRC bestanden
+            const audioFiles = files.filter(f => f.type.startsWith('audio/') || f.name.endsWith('.mp3') || f.name.endsWith('.wav') || f.name.endsWith('.ogg'));
+            const lrcFiles = files.filter(f => f.name.endsWith('.lrc'));
 
-            playlist.forEach((file, index) => {
+            if (audioFiles.length === 0) {
+                alert("Selecteer minimaal één audiobestand.");
+                return;
+            }
+
+            playlist = audioFiles.map(audioFile => {
+                const baseName = audioFile.name.substring(0, audioFile.name.lastIndexOf('.'));
+                const matchingLrc = lrcFiles.find(lrc => lrc.name.substring(0, lrc.name.lastIndexOf('.')) === baseName);
+                return {
+                    audio: audioFile,
+                    lrc: matchingLrc || null
+                };
+            });
+
+            playlistSelect.innerHTML = '';
+            playlist.forEach((item, index) => {
                 const option = document.createElement('option');
                 option.value = index;
-                option.textContent = file.name;
+                option.textContent = item.audio.name;
                 playlistSelect.appendChild(option);
             });
 
             playlistWrapper.style.display = 'block';
-
-            // Laad het eerste nummer in de lijst
             playlistSelect.selectedIndex = 0;
-            await loadSelectedTrack(0);
+            loadTrack(0);
         });
 
-        playlistSelect.addEventListener('change', async (e) => {
-            const selectedIndex = parseInt(e.target.value, 10);
-            await loadSelectedTrack(selectedIndex);
+        playlistSelect.addEventListener('change', (e) => {
+            const index = parseInt(e.target.value, 10);
+            loadTrack(index);
         });
 
-        async function loadSelectedTrack(index) {
-            const file = playlist[index];
-            if (!file) return;
+        async function loadTrack(index) {
+            stopPlayback();
+            const item = playlist[index];
+            if (!item) return;
 
-            if (!isInitialized) {
-                await initEngine();
-            }
+            trackTitle.textContent = item.audio.name;
+            audioPlayer.src = URL.createObjectURL(item.audio);
 
-            const arrayBuffer = await file.arrayBuffer();
-            
-            // Laad MIDI/KAR in de sequencer
-            seq.loadMIDI(arrayBuffer);
-            
-            trackTitle.textContent = file.name;
+            lyrics = [];
             lyricsDisplay.textContent = "Klaar voor afspelen...";
+
+            if (item.lrc) {
+                const text = await item.lrc.text();
+                lyrics = parseLRC(text);
+            }
 
             btnPlay.disabled = false;
             btnPause.disabled = false;
             btnStop.disabled = false;
         }
 
-        btnPlay.addEventListener('click', () => {
-            if (seq) {
-                seq.play();
+        function parseLRC(lrcText) {
+            const lines = lrcText.split('\n');
+            const result = [];
+            const timeRegex = /\[(\d{2}):(\d{2})\.(\d{2,3})\]/;
+
+            for (let line of lines) {
+                const match = timeRegex.exec(line);
+                if (match) {
+                    const minutes = parseInt(match[1], 10);
+                    const seconds = parseInt(match[2], 10);
+                    const ms = parseInt(match[3].padEnd(3, '0'), 10);
+                    const time = minutes * 60 + seconds + ms / 1000;
+                    const text = line.replace(timeRegex, '').trim();
+                    if (text) {
+                        result.push({ time, text });
+                    }
+                }
             }
+            return result.sort((a, b) => a.time - b.time);
+        }
+
+        audioPlayer.addEventListener('timeupdate', () => {
+            if (lyrics.length === 0) return;
+
+            const currentTime = audioPlayer.currentTime;
+            let currentText = "---";
+
+            for (let i = 0; i < lyrics.length; i++) {
+                if (currentTime >= lyrics[i].time) {
+                    currentText = lyrics[i].text;
+                } else {
+                    break;
+                }
+            }
+            lyricsDisplay.textContent = currentText;
+        });
+
+        btnPlay.addEventListener('click', () => {
+            audioPlayer.play();
         });
 
         btnPause.addEventListener('click', () => {
-            if (seq) {
-                seq.pause();
-            }
+            audioPlayer.pause();
         });
 
         btnStop.addEventListener('click', () => {
-            if (seq) {
-                seq.stop();
-                lyricsDisplay.textContent = "---";
-            }
+            stopPlayback();
         });
+
+        function stopPlayback() {
+            audioPlayer.pause();
+            audioPlayer.currentTime = 0;
+            lyricsDisplay.textContent = "---";
+        }
     </script>
 </body>
 </html>
