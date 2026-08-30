@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#0f172a">
-  <title>Karaoke Duo Player + Fullscreen Lyrics</title>
+  <title>Karaoke Party</title>
 
   <!-- JSZip voor het verwerken van het .kar pakket -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -57,14 +57,12 @@
 
     header { text-align: center; margin-bottom: 20px; }
     header h1 {
-      font-size: 1.6rem;
+      font-size: 1.8rem;
       font-weight: 700;
       background: linear-gradient(to right, #818cf8, #c084fc);
       -webkit-text-fill-color: transparent;
       -webkit-background-clip: text;
-      margin-bottom: 4px;
     }
-    header p { font-size: 0.85rem; color: var(--text-muted); }
 
     .kar-actions {
       display: flex;
@@ -90,6 +88,47 @@
       transition: background 0.2s ease;
     }
     .btn-zip:hover { background: rgba(255, 255, 255, 0.15); }
+
+    /* Afspeellijst / Menu */
+    .playlist-card {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 16px;
+      display: none;
+    }
+    .playlist-header {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .playlist-count {
+      background: var(--primary);
+      color: #fff;
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+    .playlist-select {
+      width: 100%;
+      background: rgba(30, 41, 59, 0.9);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      outline: none;
+      cursor: pointer;
+    }
+    .playlist-select option {
+      background: #0f172a;
+      color: #fff;
+    }
 
     /* Titel en Afbeelding Card */
     .track-card {
@@ -121,9 +160,26 @@
       height: 100%;
       object-fit: cover;
     }
-    .track-info { overflow: hidden; flex: 1; }
-    .track-title { font-size: 1rem; font-weight: 700; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .track-status { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+    .track-info { 
+      overflow: hidden; 
+      flex: 1; 
+      display: flex; 
+      flex-direction: column; 
+      justify-content: center; 
+    }
+    .track-title { 
+      font-size: 0.95rem; 
+      font-weight: 700; 
+      color: var(--text-main); 
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1.25;
+      word-break: break-word;
+    }
+    .track-status { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
 
     input[type="file"] { display: none; }
 
@@ -345,16 +401,24 @@
 
   <div class="container">
     <header>
-      <h1>Karaoke Duo Player</h1>
-      <p>Laad een .KAR nummer in</p>
+      <h1>Karaoke party</h1>
     </header>
 
     <div class="kar-actions">
       <button class="btn-zip" onclick="document.getElementById('zipInput').click()">
         <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
-        Open .KAR Bestand
+        Open .KAR Bestanden
       </button>
-      <input type="file" id="zipInput" accept=".kar,.zip">
+      <input type="file" id="zipInput" accept=".kar,.zip" multiple>
+    </div>
+
+    <!-- Afspeellijst Selectie Menu -->
+    <div class="playlist-card" id="playlistCard">
+      <div class="playlist-header">
+        <span>Afspeellijst</span>
+        <span class="playlist-count" id="playlistCount">0 nummers</span>
+      </div>
+      <select class="playlist-select" id="playlistSelect"></select>
     </div>
 
     <!-- Nummer Informatie Kaart -->
@@ -493,7 +557,7 @@
       </div>
     </div>
 
-    <div class="status-bar" id="statusBar">Upload een .kar bestand om te beginnen.</div>
+    <div class="status-bar" id="statusBar">Upload één of meerdere .kar bestanden om te beginnen.</div>
   </div>
 
   <script>
@@ -513,11 +577,19 @@
     let isPlaying = false, startTime = 0, pauseOffset = 0, animFrame = null;
     let lyricsData = [], activeLineIndex = -1;
     
+    // Afspeellijst beheer
+    let loadedTracks = [];
+    let currentTrackIndex = -1;
+
     const savedOffset = localStorage.getItem('karaoke_userOffset');
     let userOffset = savedOffset !== null ? parseFloat(savedOffset) : 0.0;
     let isUserSeeking = false;
 
     const zipInput = document.getElementById('zipInput');
+    const playlistCard = document.getElementById('playlistCard');
+    const playlistSelect = document.getElementById('playlistSelect');
+    const playlistCount = document.getElementById('playlistCount');
+
     const playBtn = document.getElementById('playBtn');
     const stopBtn = document.getElementById('stopBtn');
     const fsPlayBtn = document.getElementById('fsPlayBtn');
@@ -594,29 +666,73 @@
       lyricsWrapper.classList.toggle('fullscreen', !!document.fullscreenElement);
     });
 
-    // Inlezen van de .KAR (met ontsleuteling en Zip verwerking)
+    // Bestanden inladen (enkel of meerdere)
     zipInput.addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
+      const files = Array.from(e.target.files);
+      if (files.length === 0) return;
 
-      statusBar.textContent = "KAR-bestand inladen...";
+      statusBar.textContent = "Bestand(en) toevoegen...";
       
-      // Maak een schone titel op basis van de bestandsnaam
-      let cleanTitle = file.name.replace(/\.(kar|zip)$/i, '').replace(/_/g, ' ');
-      document.getElementById('trackTitle').textContent = cleanTitle;
-      document.getElementById('trackStatus').textContent = "Pakket verwerken...";
+      for (const file of files) {
+        let cleanTitle = file.name.replace(/\.(kar|zip)$/i, '').replace(/_/g, ' ');
+        loadedTracks.push({
+          file: file,
+          title: cleanTitle
+        });
+      }
+
+      updatePlaylistDropdown();
+
+      // Als er nog geen nummer was geselecteerd, laad het eerste geopende nummer
+      if (currentTrackIndex === -1 && loadedTracks.length > 0) {
+        loadTrackByIndex(0);
+      } else {
+        statusBar.textContent = `${files.length} nummer(s) toegevoegd aan de afspeellijst.`;
+      }
+    });
+
+    function updatePlaylistDropdown() {
+      playlistSelect.innerHTML = '';
+      loadedTracks.forEach((track, idx) => {
+        const option = document.createElement('option');
+        option.value = idx;
+        option.textContent = `${idx + 1}. ${track.title}`;
+        if (idx === currentTrackIndex) option.selected = true;
+        playlistSelect.appendChild(option);
+      });
+
+      playlistCount.textContent = `${loadedTracks.length} ${loadedTracks.length === 1 ? 'nummer' : 'nummers'}`;
+      playlistCard.style.display = loadedTracks.length > 0 ? 'block' : 'none';
+    }
+
+    playlistSelect.addEventListener('change', (e) => {
+      const selectedIndex = parseInt(e.target.value, 10);
+      if (!isNaN(selectedIndex) && selectedIndex !== currentTrackIndex) {
+        loadTrackByIndex(selectedIndex);
+      }
+    });
+
+    async function loadTrackByIndex(index) {
+      if (index < 0 || index >= loadedTracks.length) return;
+
+      stopAudio();
+      currentTrackIndex = index;
+      updatePlaylistDropdown();
+
+      const track = loadedTracks[index];
+      document.getElementById('trackTitle').textContent = track.title;
+      document.getElementById('trackStatus').textContent = "Nummer verwerken...";
+      statusBar.textContent = `Laden: ${track.title}...`;
 
       try {
-        const rawBuffer = await file.arrayBuffer();
+        const rawBuffer = await track.file.arrayBuffer();
         
-        // Probeer eerst ontsleutelen (als het een custom .kar/zip is)
         let zipBuffer = scrambleBuffer(rawBuffer.slice(0), APP_SECRET_KEY);
         let zip = null;
 
         try {
           zip = await JSZip.loadAsync(zipBuffer);
         } catch(err) {
-          // Als het niet versleuteld was, probeer ruwe zip
           try {
             zip = await JSZip.loadAsync(rawBuffer);
           } catch(err2) {
@@ -628,7 +744,6 @@
         let extractedCoverUrl = null;
 
         if (zip) {
-          // 1. Zoek naar afbeeldingsbestanden in de ZIP
           for (const filename of Object.keys(zip.files)) {
             const lower = filename.toLowerCase();
             if (lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.png') || lower.endsWith('.webp')) {
@@ -639,7 +754,6 @@
             }
           }
 
-          // 2. Verwerk de overige bestanden (Audio & Lyrics)
           for (const filename of Object.keys(zip.files)) {
             const zipEntry = zip.files[filename];
             if (zipEntry.dir) continue;
@@ -661,12 +775,10 @@
           }
         }
 
-        // 3. Fallback: Ruwe binary scan voor JPEG/PNG bytes als er nog geen cover is
         if (!extractedCoverUrl) {
           extractedCoverUrl = parseEmbeddedImage(new Uint8Array(rawBuffer));
         }
 
-        // Update cover-afbeelding weergave
         const coverContainer = document.getElementById('coverContainer');
         if (extractedCoverUrl) {
           coverContainer.innerHTML = `<img src="${extractedCoverUrl}" alt="Cover">`;
@@ -679,14 +791,13 @@
         statusBar.textContent = "Klaar om af te spelen!";
       } catch (err) {
         console.error(err);
-        statusBar.textContent = "Fout bij inladen van KAR-bestand.";
+        statusBar.textContent = "Fout bij inladen van het nummer.";
         document.getElementById('trackStatus').textContent = "Kan bestand niet verwerken";
       }
-    });
+    }
 
-    // Zoekt ID3v2 APIC (Cover Art) tag binnen MP3 bestanden
     function parseID3Cover(bytes) {
-      if (bytes.length < 10 || bytes[0] !== 0x49 || bytes[1] !== 0x44 || bytes[2] !== 0x33) return null; // Check "ID3"
+      if (bytes.length < 10 || bytes[0] !== 0x49 || bytes[1] !== 0x44 || bytes[2] !== 0x33) return null;
       let offset = 10;
       const totalSize = ((bytes[6] & 0x7f) << 21) | ((bytes[7] & 0x7f) << 14) | ((bytes[8] & 0x7f) << 7) | (bytes[9] & 0x7f);
 
@@ -694,7 +805,7 @@
         const frameID = String.fromCharCode(bytes[offset], bytes[offset+1], bytes[offset+2], bytes[offset+3]);
         const frameSize = (bytes[offset+4] << 24) | (bytes[offset+5] << 16) | (bytes[offset+6] << 8) | bytes[offset+7];
         
-        if (frameID === "APIC") { // Attached Picture Frame
+        if (frameID === "APIC") {
           let imgStart = offset + 10;
           let mimeEnd = imgStart + 1;
           while (bytes[mimeEnd] !== 0 && mimeEnd < offset + 10 + frameSize) mimeEnd++;
@@ -703,7 +814,7 @@
           const mimeStr = String.fromCharCode(...bytes.subarray(imgStart + 1, mimeEnd));
           if (mimeStr.includes("png")) mime = "image/png";
 
-          let pictureDataStart = mimeEnd + 2; // Sla picture type en description over
+          let pictureDataStart = mimeEnd + 2;
           while (bytes[pictureDataStart] !== 0 && pictureDataStart < offset + 10 + frameSize) pictureDataStart++;
           pictureDataStart++;
 
@@ -748,7 +859,8 @@
       lyricsData = [];
       const lineTimeRegex = /^\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)$/;
 
-      lrcText.split('\n').forEach(line => {
+      lrcText.split('
+').forEach(line => {
         const lineMatch = lineTimeRegex.exec(line.trim());
         if (lineMatch) {
           const time = parseInt(lineMatch[1], 10) * 60 + parseInt(lineMatch[2], 10) + parseInt(lineMatch[3].padEnd(3, '0'), 10) / 1000;
