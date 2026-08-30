@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0f172a">
   <title>Karaoke Duo Player + Fullscreen Lyrics</title>
 
-  <!-- JSZip bibliotheek voor het maken en uitpakken van zip-bestanden -->
+  <!-- JSZip voor het verwerken van het .kar pakket -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
   <style>
@@ -66,86 +66,59 @@
     }
     header p { font-size: 0.85rem; color: var(--text-muted); }
 
-    .zip-actions {
+    .kar-actions {
       display: flex;
       flex-direction: column;
       gap: 10px;
       margin-bottom: 16px;
     }
-    .export-group {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      width: 100%;
-    }
-    .input-filename {
-      flex: 1;
-      min-width: 0;
-      background: rgba(15, 23, 42, 0.8);
-      color: var(--text-main);
-      border: 1px solid var(--border-color);
-      padding: 10px 12px;
-      border-radius: 10px;
-      font-size: 0.85rem;
-      outline: none;
-    }
-    .input-filename:focus {
-      border-color: var(--primary);
-    }
+
     .btn-zip {
       width: 100%;
       background: rgba(255, 255, 255, 0.08);
       color: var(--text-main);
       border: 1px solid var(--border-color);
-      padding: 10px 12px;
+      padding: 12px;
       border-radius: 10px;
-      font-size: 0.8rem;
+      font-size: 0.9rem;
       font-weight: 600;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
+      gap: 8px;
       transition: background 0.2s ease;
-      white-space: nowrap;
     }
-    .btn-zip.export-btn {
-      width: auto;
-      flex-shrink: 0;
-    }
-    .btn-zip:hover {
-      background: rgba(255, 255, 255, 0.15);
-    }
+    .btn-zip:hover { background: rgba(255, 255, 255, 0.15); }
 
-    .file-inputs { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
-    .file-card {
+    /* Titel en Afbeelding Card */
+    .track-card {
       background: rgba(15, 23, 42, 0.6);
-      border: 1px dashed var(--border-color);
+      border: 1px solid var(--border-color);
       border-radius: 12px;
-      padding: 10px 14px;
+      padding: 12px;
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 20px;
     }
-    .file-card.loaded { border-style: solid; border-color: var(--primary); background: rgba(99, 102, 241, 0.1); }
-    .file-info { display: flex; flex-direction: column; gap: 2px; overflow: hidden; padding-right: 10px; flex: 1; }
-    .file-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
-    .file-label.music { color: var(--accent-music); }
-    .file-label.vocal { color: var(--accent-vocal); }
-    .file-label.lrc { color: var(--accent-lrc); }
-    .file-name { font-size: 0.85rem; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-    .btn-file {
-      background: rgba(255, 255, 255, 0.08);
-      color: var(--text-main);
-      border: 1px solid var(--border-color);
-      padding: 6px 14px;
+    .track-cover {
+      width: 64px;
+      height: 64px;
       border-radius: 8px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      cursor: pointer;
+      object-fit: cover;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
       flex-shrink: 0;
     }
+    .track-info { overflow: hidden; flex: 1; }
+    .track-title { font-size: 1rem; font-weight: 700; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .track-status { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+
     input[type="file"] { display: none; }
 
     .lyrics-wrapper { position: relative; margin-bottom: 12px; }
@@ -246,9 +219,7 @@
       z-index: 10001;
       padding: 0 16px calc(16px + env(safe-area-inset-bottom, 0px)) 16px;
     }
-    .lyrics-wrapper.fullscreen .fs-player-overlay {
-      display: block;
-    }
+    .lyrics-wrapper.fullscreen .fs-player-overlay { display: block; }
 
     .fs-toggle-btn {
       display: flex;
@@ -370,8 +341,6 @@
       box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
       transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
-    .btn-install-app:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(99, 102, 241, 0.6); }
-    .btn-install-app:active { transform: translateY(0); }
   </style>
 </head>
 <body>
@@ -379,71 +348,43 @@
   <div class="container">
     <header>
       <h1>Karaoke Duo Player</h1>
-      <p>Synchronisatie per regel</p>
+      <p>Laad een .KAR nummer in</p>
     </header>
 
-    <!-- EXPORT EN IMPORT SECTIE -->
-    <div class="zip-actions">
-      <div class="export-group">
-        <input type="text" id="exportFileNameInput" class="input-filename" placeholder="Bestandsnaam (optioneel)" value="karaoke-package">
-        <button class="btn-zip export-btn" onclick="exportToZip()">
-          <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-          Export ZIP
-        </button>
-      </div>
+    <div class="kar-actions">
       <button class="btn-zip" onclick="document.getElementById('zipInput').click()">
-        <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
-        Import ZIP
+        <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
+        Open .KAR Bestand
       </button>
-      <input type="file" id="zipInput" accept=".zip">
+      <input type="file" id="zipInput" accept=".kar,.zip">
     </div>
 
-    <div class="file-inputs">
-      <div class="file-card" id="musicCard">
-        <div class="file-info">
-          <span class="file-label music">Muziek Spoor</span>
-          <span class="file-name" id="musicName">Geen bestand gekozen</span>
-        </div>
-        <button class="btn-file" onclick="document.getElementById('musicInput').click()">Kiezen</button>
-        <input type="file" id="musicInput" accept="audio/*">
-      </div>
-
-      <div class="file-card" id="vocalCard">
-        <div class="file-info">
-          <span class="file-label vocal">Zang Spoor</span>
-          <span class="file-name" id="vocalName">Geen bestand gekozen</span>
-        </div>
-        <button class="btn-file" onclick="document.getElementById('vocalInput').click()">Kiezen</button>
-        <input type="file" id="vocalInput" accept="audio/*">
-      </div>
-
-      <div class="file-card" id="lrcCard">
-        <div class="file-info">
-          <span class="file-label lrc">Karaoke Tekst (.LRC)</span>
-          <span class="file-name" id="lrcName">Geen bestand gekozen</span>
-        </div>
-        <button class="btn-file" onclick="document.getElementById('lrcInput').click()">Kiezen</button>
-        <input type="file" id="lrcInput" accept=".lrc,.txt">
+    <!-- Nummer Informatie Kaart -->
+    <div class="track-card">
+      <div class="track-cover" id="coverContainer">🎵</div>
+      <div class="track-info">
+        <div class="track-title" id="trackTitle">Geen nummer geladen</div>
+        <div class="track-status" id="trackStatus">Selecteer een .kar bestand om te beginnen</div>
       </div>
     </div>
 
     <div class="lyrics-wrapper" id="lyricsWrapper">
       <button class="btn-fullscreen" id="fullscreenBtn" onclick="toggleFullscreen()">
-        <svg id="fullscreenIcon" width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
+        <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
           <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
         </svg>
-        <span id="fullscreenText">Volledig scherm</span>
+        <span>Volledig scherm</span>
       </button>
 
       <button class="btn-close-fullscreen" id="closeFullscreenBtn" onclick="toggleFullscreen()" title="Sluiten">✕</button>
 
       <div class="lyrics-container" id="lyricsContainer">
-        <div class="lyric-line">Kies je audio- en tekstbestanden om te starten...</div>
+        <div class="lyric-line">Kies een .kar bestand om te starten...</div>
       </div>
 
       <!-- INKLAPBARE SPELER IN FULLSCREEN -->
       <div class="fs-player-overlay" id="fsPlayerOverlay">
-        <button class="fs-toggle-btn" id="fsToggleBtn" onclick="toggleFsPanel(event)" title="Paneel in/uitklappen">
+        <button class="fs-toggle-btn" id="fsToggleBtn" onclick="toggleFsPanel(event)">
           <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
             <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/>
           </svg>
@@ -490,11 +431,11 @@
 
     <div class="offset-control">
       <div class="offset-header">
-        <span class="offset-title">⏱️ Tekst Vertraging (Tienden sec.):</span>
-        <span class="offset-value" id="offsetDisplay">+1.5s</span>
+        <span class="offset-title">⏱️ Tekst Vertraging:</span>
+        <span class="offset-value" id="offsetDisplay">+0.0s</span>
       </div>
       <div class="slider-wrapper">
-        <input type="range" id="offsetSlider" min="-5" max="5" step="0.1" value="1.5">
+        <input type="range" id="offsetSlider" min="-10" max="10" step="0.1" value="0.0">
       </div>
       <div class="offset-btns">
         <button class="btn-offset" onclick="adjustOffset(-0.4)">-0.4s</button>
@@ -554,103 +495,35 @@
       </div>
     </div>
 
-    <div class="status-bar" id="statusBar">Upload audio- en tekstbestanden of een ZIP-pakket.</div>
+    <div class="status-bar" id="statusBar">Upload een .kar bestand om te beginnen.</div>
 
     <div class="footer-actions">
-      <button id="installAppBtn" class="btn-install-app">📲 App Installeren</button>
+      <button id="installAppBtn" class="btn-install-app" style="display:none;">📲 App Installeren</button>
     </div>
   </div>
 
   <script>
-    // DYNAMISCHE MANIFEST EN SERVICE WORKER GENERATIE VOOR VOLLEDIGE PWA ONDERSTEUNING
-    (function initPWA() {
-      const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><rect width="512" height="512" rx="128" fill="#0f172a"/><path d="M160 120v272l224-136z" fill="#6366f1"/></svg>`;
-      const iconUrl = 'data:image/svg+xml;base64,' + btoa(svgIcon);
+    const APP_SECRET_KEY = "MijnUniekeKaraokeSleutel2026!";
 
-      const manifest = {
-        name: "Karaoke Duo Player",
-        short_name: "KaraokeApp",
-        start_url: window.location.href,
-        display: "standalone",
-        background_color: "#0f172a",
-        theme_color: "#0f172a",
-        icons: [
-          { src: iconUrl, sizes: "192x192", type: "image/svg+xml", purpose: "any maskable" },
-          { src: iconUrl, sizes: "512x512", type: "image/svg+xml", purpose: "any maskable" }
-        ]
-      };
-
-      const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
-      const manifestUrl = URL.createObjectURL(manifestBlob);
-      const manifestLink = document.createElement('link');
-      manifestLink.rel = 'manifest';
-      manifestLink.href = manifestUrl;
-      document.head.appendChild(manifestLink);
-
-      if ('serviceWorker' in navigator) {
-        const swCode = `
-          const CACHE_NAME = 'karaoke-cache-v1';
-          self.addEventListener('install', e => {
-            self.skipWaiting();
-          });
-          self.addEventListener('activate', e => {
-            e.waitUntil(clients.claim());
-          });
-          self.addEventListener('fetch', e => {
-            e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
-          });
-        `;
-        const swBlob = new Blob([swCode], { type: 'application/javascript' });
-        navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(err => console.log('SW Fout:', err));
+    function scrambleBuffer(arrayBuffer, key) {
+      const uint8 = new Uint8Array(arrayBuffer);
+      const keyLength = key.length;
+      for (let i = 0; i < uint8.length; i++) {
+        uint8[i] ^= key.charCodeAt(i % keyLength);
       }
-    })();
-
-    let deferredPrompt;
-    const installAppBtn = document.getElementById('installAppBtn');
-
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      installAppBtn.style.display = 'block';
-    });
-
-    installAppBtn.addEventListener('click', async () => {
-      if (deferredPrompt) {
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') installAppBtn.style.display = 'none';
-        deferredPrompt = null;
-      } else {
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-        alert(isIOS 
-          ? "Tik op de 'Delen'-knop in je browser en kies 'Zet op beginbodem' om de app te installeren."
-          : "Tik op de 3 puntjes van je browsermenu (rechtsboven) en kies 'Toevoegen aan startscherm' of 'App installeren'."
-        );
-      }
-    });
+      return uint8.buffer;
+    }
 
     let audioCtx = null, musicBuffer = null, vocalBuffer = null;
     let musicSource = null, vocalSource = null, musicGainNode = null, vocalGainNode = null;
     let isPlaying = false, startTime = 0, pauseOffset = 0, animFrame = null;
     let lyricsData = [], activeLineIndex = -1;
     
-    // Ophalen van de opgeslagen offset-waarde of standaard 1.5 gebruiken
     const savedOffset = localStorage.getItem('karaoke_userOffset');
-    let userOffset = savedOffset !== null ? parseFloat(savedOffset) : 1.5;
-    
+    let userOffset = savedOffset !== null ? parseFloat(savedOffset) : 0.0;
     let isUserSeeking = false;
 
-    // Opslag voor ruwe bestandsdata t.b.v. Zip Export
-    let musicFileData = null, musicFileName = "music.mp3";
-    let vocalFileData = null, vocalFileName = "vocal.mp3";
-    let lrcFileData = null, lrcFileName = "lyrics.lrc";
-
-    const musicInput = document.getElementById('musicInput');
-    const vocalInput = document.getElementById('vocalInput');
-    const lrcInput = document.getElementById('lrcInput');
     const zipInput = document.getElementById('zipInput');
-    const exportFileNameInput = document.getElementById('exportFileNameInput');
-
     const playBtn = document.getElementById('playBtn');
     const stopBtn = document.getElementById('stopBtn');
     const fsPlayBtn = document.getElementById('fsPlayBtn');
@@ -710,135 +583,49 @@
       return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     }
 
-    function enterFullscreen() {
+    function toggleFullscreen() {
       if (!document.fullscreenElement && !lyricsWrapper.classList.contains('fullscreen')) {
         if (lyricsWrapper.requestFullscreen) {
           lyricsWrapper.requestFullscreen().catch(() => lyricsWrapper.classList.add('fullscreen'));
         } else {
           lyricsWrapper.classList.add('fullscreen');
         }
-        updateFullscreenUI();
-      }
-    }
-
-    function toggleFullscreen() {
-      if (!document.fullscreenElement && !lyricsWrapper.classList.contains('fullscreen')) {
-        enterFullscreen();
       } else {
         if (document.exitFullscreen && document.fullscreenElement) document.exitFullscreen();
         lyricsWrapper.classList.remove('fullscreen');
-        updateFullscreenUI();
       }
     }
 
     document.addEventListener('fullscreenchange', () => {
       lyricsWrapper.classList.toggle('fullscreen', !!document.fullscreenElement);
-      updateFullscreenUI();
     });
 
-    function updateFullscreenUI() {
-      if (activeLineIndex !== -1) {
-        document.getElementById(`line-${activeLineIndex}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-    }
-
-    musicInput.addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      musicFileName = file.name;
-      musicFileData = await file.arrayBuffer();
-      document.getElementById('musicName').textContent = file.name;
-      document.getElementById('musicCard').classList.add('loaded');
-      try { musicBuffer = await decodeAudioArrayBuffer(musicFileData.slice(0)); checkReady(); } 
-      catch (err) { statusBar.textContent = "Fout bij laden van muziek."; }
-    });
-
-    vocalInput.addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      vocalFileName = file.name;
-      vocalFileData = await file.arrayBuffer();
-      document.getElementById('vocalName').textContent = file.name;
-      document.getElementById('vocalCard').classList.add('loaded');
-      try { vocalBuffer = await decodeAudioArrayBuffer(vocalFileData.slice(0)); checkReady(); } 
-      catch (err) { statusBar.textContent = "Fout bij laden van zang."; }
-    });
-
-    lrcInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      lrcFileName = file.name;
-      document.getElementById('lrcName').textContent = file.name;
-      document.getElementById('lrcCard').classList.add('loaded');
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        lrcFileData = event.target.result;
-        parseLRC(lrcFileData);
-      };
-      reader.readAsText(file);
-    });
-
-    /* ZIP EXPORT EN IMPORT FUNCTIONALITEIT */
-    async function exportToZip() {
-      if (!musicFileData || !vocalFileData || !lrcFileData) {
-        alert("Zorg dat het muziekspoor, het zangspoor en de lyrics zijn ingeladen voordat je exporteert.");
-        return;
-      }
-
-      let customName = exportFileNameInput.value.trim() || "karaoke-package";
-      if (!customName.toLowerCase().endsWith('.zip')) {
-        customName += '.zip';
-      }
-
-      statusBar.textContent = "ZIP bestand maken...";
-      try {
-        const zip = new JSZip();
-        zip.file(musicFileName, musicFileData);
-        zip.file(vocalFileName, vocalFileData);
-        zip.file(lrcFileName, lrcFileData);
-
-        const settings = {
-          userOffset: userOffset,
-          exportDate: new Date().toISOString()
-        };
-        zip.file("config.json", JSON.stringify(settings, null, 2));
-
-        const content = await zip.generateAsync({ type: "blob" });
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(content);
-        a.download = customName;
-        a.click();
-        URL.revokeObjectURL(a.href);
-        statusBar.textContent = `ZIP bestand (${customName}) succesvol geëxporteerd!`;
-      } catch (err) {
-        console.error(err);
-        statusBar.textContent = "Fout bij maken van ZIP-bestand.";
-      }
-    }
-
+    // Inlezen van de .KAR (met ontsleuteling en Zip verwerking)
     zipInput.addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
 
-      statusBar.textContent = "ZIP bestand uitpakken...";
+      statusBar.textContent = "KAR-bestand inladen...";
+      document.getElementById('trackTitle').textContent = file.name.replace(/\.(kar|zip)$/i, '');
+      document.getElementById('trackStatus').textContent = "Pakket uitpakken en verwerken...";
+
       try {
-        const zip = await JSZip.loadAsync(file);
-        let foundMusic = false, foundVocal = false, foundLrc = false;
-
-        const zipNameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
-        exportFileNameInput.value = zipNameWithoutExt;
-
-        if (zip.files["config.json"]) {
-          try {
-            const configText = await zip.files["config.json"].async("string");
-            const config = JSON.parse(configText);
-            if (config.userOffset !== undefined) {
-              setOffset(config.userOffset);
-            }
-          } catch (configErr) {
-            console.warn("Kon config.json niet verwerken", configErr);
-          }
+        const rawBuffer = await file.arrayBuffer();
+        
+        // Afbeelding zoeken uit de ruwe binary data
+        const coverUrl = parseEmbeddedImage(new Uint8Array(rawBuffer));
+        const coverContainer = document.getElementById('coverContainer');
+        if (coverUrl) {
+          coverContainer.innerHTML = `<img src="${coverUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">`;
+        } else {
+          coverContainer.textContent = "🎵";
         }
+
+        // Ontercijfer de Zip inhoud
+        const decryptedBuffer = scrambleBuffer(rawBuffer, APP_SECRET_KEY);
+        const zip = await JSZip.loadAsync(decryptedBuffer);
+
+        musicBuffer = null; vocalBuffer = null; lyricsData = [];
 
         for (const filename of Object.keys(zip.files)) {
           const zipEntry = zip.files[filename];
@@ -846,46 +633,55 @@
 
           const lowerName = filename.toLowerCase();
 
-          if (lowerName.endsWith('.lrc') || lowerName.endsWith('.txt')) {
-            lrcFileName = filename;
-            lrcFileData = await zipEntry.async('string');
-            document.getElementById('lrcName').textContent = filename;
-            document.getElementById('lrcCard').classList.add('loaded');
-            parseLRC(lrcFileData);
-            foundLrc = true;
-          } else if (lowerName.includes('vocal') || lowerName.includes('zang')) {
-            vocalFileName = filename;
-            vocalFileData = await zipEntry.async('arraybuffer');
-            vocalBuffer = await decodeAudioArrayBuffer(vocalFileData.slice(0));
-            document.getElementById('vocalName').textContent = filename;
-            document.getElementById('vocalCard').classList.add('loaded');
-            foundVocal = true;
-          } else if (lowerName.endsWith('.mp3') || lowerName.endsWith('.wav') || lowerName.endsWith('.m4a') || lowerName.endsWith('.ogg')) {
-            if (!foundMusic) {
-              musicFileName = filename;
-              musicFileData = await zipEntry.async('arraybuffer');
-              musicBuffer = await decodeAudioArrayBuffer(musicFileData.slice(0));
-              document.getElementById('musicName').textContent = filename;
-              document.getElementById('musicCard').classList.add('loaded');
-              foundMusic = true;
-            } else if (!foundVocal) {
-              vocalFileName = filename;
-              vocalFileData = await zipEntry.async('arraybuffer');
-              vocalBuffer = await decodeAudioArrayBuffer(vocalFileData.slice(0));
-              document.getElementById('vocalName').textContent = filename;
-              document.getElementById('vocalCard').classList.add('loaded');
-              foundVocal = true;
-            }
+          if (lowerName.includes("music_") || lowerName.includes("instrumental") || (lowerName.endsWith(".mp3") && !lowerName.includes("vocal"))) {
+            const data = await zipEntry.async('arraybuffer');
+            musicBuffer = await decodeAudioArrayBuffer(data);
+          } else if (lowerName.includes("vocal_") || lowerName.includes("vocals") || lowerName.includes("zang")) {
+            const data = await zipEntry.async('arraybuffer');
+            vocalBuffer = await decodeAudioArrayBuffer(data);
+          } else if (lowerName.endsWith(".lrc") || lowerName.endsWith(".txt")) {
+            const lrcText = await zipEntry.async('string');
+            parseLRC(lrcText);
           }
         }
 
         checkReady();
-        statusBar.textContent = "ZIP bestand succesvol ingeladen!";
+        document.getElementById('trackStatus').textContent = "Nummer succesvol geladen";
+        statusBar.textContent = "Klaar om af te spelen!";
       } catch (err) {
         console.error(err);
-        statusBar.textContent = "Fout bij uitpakken van ZIP-bestand.";
+        statusBar.textContent = "Fout bij inladen van KAR-bestand.";
+        document.getElementById('trackStatus').textContent = "Kan bestand niet verwerken";
       }
     });
+
+    function parseEmbeddedImage(bytes) {
+      for (let i = 0; i < bytes.length - 3; i++) {
+        if (bytes[i] === 0xFF && bytes[i+1] === 0xD8 && bytes[i+2] === 0xFF) {
+          let end = -1;
+          for (let j = i + 2; j < bytes.length - 1; j++) {
+            if (bytes[j] === 0xFF && bytes[j+1] === 0xD9) { end = j + 2; break; }
+          }
+          if (end !== -1) return 'data:image/jpeg;base64,' + bufferToBase64(bytes.subarray(i, end));
+        }
+      }
+      for (let i = 0; i < bytes.length - 8; i++) {
+        if (bytes[i] === 0x89 && bytes[i+1] === 0x50 && bytes[i+2] === 0x4E && bytes[i+3] === 0x47) {
+          for (let j = i; j < bytes.length - 4; j++) {
+            if (bytes[j] === 0x49 && bytes[j+1] === 0x45 && bytes[j+2] === 0x4E && bytes[j+3] === 0x44) {
+              return 'data:image/png;base64,' + bufferToBase64(bytes.subarray(i, j + 8));
+            }
+          }
+        }
+      }
+      return null;
+    }
+
+    function bufferToBase64(bytes) {
+      let binary = '';
+      for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+      return window.btoa(binary);
+    }
 
     function parseLRC(lrcText) {
       lyricsData = [];
@@ -907,7 +703,7 @@
     function renderLyrics() {
       lyricsContainer.innerHTML = '';
       if (lyricsData.length === 0) {
-        lyricsContainer.innerHTML = '<div class="lyric-line">Geen geldige tekst gevonden</div>';
+        lyricsContainer.innerHTML = '<div class="lyric-line">Geen songtekst aanwezig</div>';
         return;
       }
       lyricsData.forEach((line, index) => {
@@ -921,7 +717,7 @@
     }
 
     function updateOffsetDisplay() {
-      offsetDisplay.textContent = `${userOffset > 0 ? '+' : ''}${userOffset.toFixed(1)}s`;
+      offsetDisplay.textContent = `${userOffset >= 0 ? '+' : ''}${userOffset.toFixed(1)}s`;
       offsetSlider.value = userOffset;
       localStorage.setItem('karaoke_userOffset', userOffset);
       if (audioCtx) updateLyricsDisplay(isPlaying ? (audioCtx.currentTime - startTime) : pauseOffset);
@@ -957,17 +753,12 @@
     function checkReady() {
       const duration = getMaxDuration();
       if (duration > 0) {
-        playBtn.disabled = false;
-        stopBtn.disabled = false;
-        seekSlider.disabled = false;
-        fsPlayBtn.disabled = false;
-        fsStopBtn.disabled = false;
-        fsSeekSlider.disabled = false;
+        playBtn.disabled = false; stopBtn.disabled = false; seekSlider.disabled = false;
+        fsPlayBtn.disabled = false; fsStopBtn.disabled = false; fsSeekSlider.disabled = false;
         
         const formatted = formatTime(duration);
         durationTimeEl.textContent = formatted;
         fsDurationTimeEl.textContent = formatted;
-        statusBar.textContent = "Klaar om af te spelen!";
       }
     }
 
@@ -1055,10 +846,8 @@
       pauseOffset = 0;
       cancelAnimationFrame(animFrame);
       
-      seekSlider.value = 0;
-      fsSeekSlider.value = 0;
-      currentTimeEl.textContent = "00:00";
-      fsCurrentTimeEl.textContent = "00:00";
+      seekSlider.value = 0; fsSeekSlider.value = 0;
+      currentTimeEl.textContent = "00:00"; fsCurrentTimeEl.textContent = "00:00";
       
       const playBtnHtml = `<svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> Afspelen`;
       playBtn.innerHTML = playBtnHtml;
@@ -1072,8 +861,7 @@
     function seekToTime(targetTime) {
       pauseOffset = Math.max(0, targetTime);
       const val = (pauseOffset / getMaxDuration()) * 100;
-      seekSlider.value = val;
-      fsSeekSlider.value = val;
+      seekSlider.value = val; fsSeekSlider.value = val;
       
       const formattedTime = formatTime(pauseOffset);
       currentTimeEl.textContent = formattedTime;
@@ -1118,11 +906,9 @@
 
     function applyVocalVolume(val) {
       if (vocalGainNode) vocalGainNode.gain.setValueAtTime(val, audioCtx.currentTime);
-      vocalVol.value = val;
-      fsVocalVol.value = val;
+      vocalVol.value = val; fsVocalVol.value = val;
       const text = Math.round(val * 100) + '%';
-      vocalVolVal.textContent = text;
-      fsVocalVolVal.textContent = text;
+      vocalVolVal.textContent = text; fsVocalVolVal.textContent = text;
 
       document.querySelectorAll('.presets .btn-preset').forEach(btn => btn.classList.remove('active'));
       if (val === 0) {
@@ -1135,12 +921,6 @@
     }
 
     function setVocalPreset(val) { applyVocalVolume(val); }
-
-    lyricsContainer.addEventListener('click', (e) => {
-      if (lyricsWrapper.classList.contains('fullscreen') && !e.target.classList.contains('lyric-line')) {
-        toggleFullscreen();
-      }
-    });
 
     window.addEventListener('DOMContentLoaded', () => {
       updateOffsetDisplay();
