@@ -261,16 +261,14 @@
       border-radius: 12px;
       height: 180px;
       overflow-y: auto;
-      padding: 60px 16px;
+      padding: 60px 12px;
       text-align: center;
       scroll-behavior: smooth;
 
-      /* Verwijder de onderrand en scrollbar */
       border-bottom: none !important;
-      scrollbar-width: none; /* Firefox */
-      -ms-overflow-style: none; /* IE/Edge */
+      scrollbar-width: none;
+      -ms-overflow-style: none;
 
-      /* Fade effect aan de boven- en onderkant (20% verloop) */
       -webkit-mask-image: linear-gradient(
         to bottom,
         transparent 0%,
@@ -287,31 +285,38 @@
       );
     }
 
-    /* Verberg de scrollbar voor Chrome, Safari en Opera */
     .lyrics-container::-webkit-scrollbar {
       display: none;
     }
 
     .lyric-line {
-      padding: 8px 12px;
-      font-size: 1.05rem;
+      padding: 6px 12px;
+      font-size: 1rem;
       color: var(--text-muted);
       cursor: pointer;
       transition: transform 0.25s ease, color 0.25s ease, text-shadow 0.25s ease;
-      margin-bottom: 6px;
-      line-height: 1.5;
-      min-height: 44px;
+      margin: 0 auto 6px auto;
+      line-height: 1.4;
+      min-height: 40px;
       display: flex;
       align-items: center;
       justify-content: center;
       background: transparent;
       border: none;
       transform-origin: center center;
+      
+      /* Zorg dat tekst binnen het scherm blijft en meebreekt */
+      white-space: normal;
+      word-break: break-word;
+      overflow-wrap: break-word;
+      text-wrap: balance;
+      max-width: 100%;
     }
+    
     .lyric-line.active {
       font-weight: 700;
       color: #ffffff;
-      transform: scale(1.15);
+      transform: scale(1.1);
       text-shadow: 0 0 12px rgba(255, 255, 255, 0.8), 0 0 24px rgba(99, 102, 241, 0.6);
     }
 
@@ -320,19 +325,29 @@
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
       z-index: 9999;
       background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
-      margin: 0; padding: 20px 20px 0 20px;
+      margin: 0; padding: 12px 12px 0 12px;
       display: flex; flex-direction: column;
     }
     .lyrics-wrapper.fullscreen .lyrics-container { 
       flex: 1; 
       height: auto; 
       border-radius: 20px; 
-      padding: 20vh 20px 40px 20px; 
+      padding: 20vh 16px 40px 16px; 
       margin-bottom: 12px;
       transition: all 0.35s ease;
     }
-    .lyrics-wrapper.fullscreen .lyric-line { font-size: 1.8rem; padding: 12px 20px; margin-bottom: 12px; min-height: 64px; }
-    .lyrics-wrapper.fullscreen .lyric-line.active { transform: scale(1.2); text-shadow: 0 0 20px rgba(255, 255, 255, 0.9), 0 0 35px rgba(168, 85, 247, 0.7); }
+    .lyrics-wrapper.fullscreen .lyric-line { 
+      /* Dynamische lettergrootte op basis van schermbreedte met een veilig maximum */
+      font-size: clamp(1.2rem, 3.5vw, 2.2rem); 
+      padding: 8px 12px; 
+      margin-bottom: 12px; 
+      min-height: 52px; 
+      max-width: 92vw;
+    }
+    .lyrics-wrapper.fullscreen .lyric-line.active { 
+      transform: scale(1.08); 
+      text-shadow: 0 0 20px rgba(255, 255, 255, 0.9), 0 0 35px rgba(168, 85, 247, 0.7); 
+    }
     .lyrics-wrapper.fullscreen .btn-fullscreen { display: none !important; }
     .lyrics-wrapper.fullscreen .btn-close-fullscreen { display: flex !important; }
 
@@ -382,7 +397,6 @@
       overflow: hidden;
     }
 
-    /* Wanneer ingeklapt: Verberg bediening maar LAAT de voortgangsbalk zichtbaar! */
     .fs-player-overlay.collapsed .controls-main,
     .fs-player-overlay.collapsed .channel {
       display: none !important;
@@ -476,7 +490,6 @@
         <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
         Open .KAR Bestanden
       </button>
-      <!-- Meerdere bestanden toegestaan via 'multiple' -->
       <input type="file" id="zipInput" accept=".kar,.zip" multiple>
     </div>
 
@@ -498,7 +511,6 @@
       <div class="playlist-body" id="playlistBody">
         <input type="text" class="playlist-search" id="playlistSearch" placeholder="Zoek nummer..." oninput="filterPlaylist()">
         <ul class="playlist-list" id="playlistList">
-          <!-- Dynamische lijst van ingeladen nummers -->
         </ul>
       </div>
     </div>
@@ -650,7 +662,6 @@
     let isPlaying = false, startTime = 0, pauseOffset = 0, animFrame = null;
     let lyricsData = [], activeLineIndex = -1;
     
-    // Afspeellijst beheer
     let playlist = [];
     let currentTrackIndex = -1;
 
@@ -740,7 +751,6 @@
       lyricsWrapper.classList.toggle('fullscreen', !!document.fullscreenElement);
     });
 
-    // Inlezen van meerdere .KAR bestanden & afspeellijst opbouwen
     zipInput.addEventListener('change', async (e) => {
       const files = Array.from(e.target.files);
       if (files.length === 0) return;
