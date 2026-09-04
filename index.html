@@ -264,7 +264,34 @@
       padding: 60px 16px;
       text-align: center;
       scroll-behavior: smooth;
+
+      /* Verwijder de onderrand en scrollbar */
+      border-bottom: none !important;
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* IE/Edge */
+
+      /* Fade effect aan de boven- en onderkant (20% verloop) */
+      -webkit-mask-image: linear-gradient(
+        to bottom,
+        transparent 0%,
+        black 20%,
+        black 80%,
+        transparent 100%
+      );
+      mask-image: linear-gradient(
+        to bottom,
+        transparent 0%,
+        black 20%,
+        black 80%,
+        transparent 100%
+      );
     }
+
+    /* Verberg de scrollbar voor Chrome, Safari en Opera */
+    .lyrics-container::-webkit-scrollbar {
+      display: none;
+    }
+
     .lyric-line {
       padding: 8px 12px;
       font-size: 1.05rem;
@@ -1175,4 +1202,4 @@
     });
   </script>
 </body>
-</html> 
+</html>
