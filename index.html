@@ -305,7 +305,6 @@
       border: none;
       transform-origin: center center;
       
-      /* Zorg dat tekst binnen het scherm blijft en meebreekt */
       white-space: normal;
       word-break: break-word;
       overflow-wrap: break-word;
@@ -320,7 +319,6 @@
       text-shadow: 0 0 12px rgba(255, 255, 255, 0.8), 0 0 24px rgba(99, 102, 241, 0.6);
     }
 
-    /* Fullscreen Modus Styling */
     .lyrics-wrapper.fullscreen {
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
       z-index: 9999;
@@ -337,7 +335,6 @@
       transition: all 0.35s ease;
     }
     .lyrics-wrapper.fullscreen .lyric-line { 
-      /* Dynamische lettergrootte op basis van schermbreedte met een veilig maximum */
       font-size: clamp(1.2rem, 3.5vw, 2.2rem); 
       padding: 8px 12px; 
       margin-bottom: 12px; 
@@ -351,7 +348,6 @@
     .lyrics-wrapper.fullscreen .btn-fullscreen { display: none !important; }
     .lyrics-wrapper.fullscreen .btn-close-fullscreen { display: flex !important; }
 
-    /* Inklapbare spelerbalk onderaan Fullscreen */
     .fs-player-overlay {
       display: none;
       position: relative;
@@ -488,7 +484,7 @@
     <div class="kar-actions">
       <button class="btn-zip" onclick="document.getElementById('zipInput').click()">
         <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
-        Open .KAR Bestanden
+        Handmatig .KAR Bestanden Openen
       </button>
       <input type="file" id="zipInput" accept=".kar,.zip" multiple>
     </div>
@@ -498,7 +494,7 @@
       <div class="track-cover" id="coverContainer">🎵</div>
       <div class="track-info">
         <div class="track-title" id="trackTitle">Geen nummer geladen</div>
-        <div class="track-status" id="trackStatus">Selecteer .kar bestand(en) om te beginnen</div>
+        <div class="track-status" id="trackStatus">Lijst laden van server...</div>
       </div>
     </div>
 
@@ -526,7 +522,7 @@
       <button class="btn-close-fullscreen" id="closeFullscreenBtn" onclick="toggleFullscreen()" title="Sluiten">✕</button>
 
       <div class="lyrics-container" id="lyricsContainer">
-        <div class="lyric-line">Kies een .kar bestand om te starten...</div>
+        <div class="lyric-line">Kies een nummer om te starten...</div>
       </div>
 
       <!-- INKLAPBARE SPELER IN FULLSCREEN -->
@@ -642,11 +638,13 @@
       </div>
     </div>
 
-    <div class="status-bar" id="statusBar">Upload een of meerdere .kar bestanden om te beginnen.</div>
+    <div class="status-bar" id="statusBar">Lijst van server ophalen...</div>
   </div>
 
   <script>
     const APP_SECRET_KEY = "MijnUniekeKaraokeSleutel2026!";
+    const KARAOKE_API_URL = "http://192.168.2.39/karaoke/upload.php";
+    const KARAOKE_BASE_DIR = "http://192.168.2.39/karaoke/";
 
     function scrambleBuffer(arrayBuffer, key) {
       const uint8 = new Uint8Array(arrayBuffer);
@@ -751,6 +749,36 @@
       lyricsWrapper.classList.toggle('fullscreen', !!document.fullscreenElement);
     });
 
+    /* --- OPHALEN VAN BESTANDEN VAN DE NAS --- */
+    async function fetchPlaylistFromNAS() {
+      statusBar.textContent = "Bestanden ophalen van NAS...";
+      try {
+        const res = await fetch(KARAOKE_API_URL);
+        if (!res.ok) throw new Error(`HTTP Fout: ${res.status}`);
+        
+        const fileNames = await res.json();
+        if (!Array.isArray(fileNames) || fileNames.length === 0) {
+          statusBar.textContent = "Geen .kar bestanden op de NAS gevonden.";
+          return;
+        }
+
+        playlist = fileNames.map(filename => ({
+          name: filename,
+          title: filename.replace(/\.(kar|zip)$/i, '').replace(/_/g, ' '),
+          url: KARAOKE_BASE_DIR + encodeURIComponent(filename),
+          file: null
+        }));
+
+        updatePlaylistUI();
+        if (playlist.length > 0) {
+          loadTrackFromPlaylist(0);
+        }
+      } catch (err) {
+        console.error("Fout bij ophalen van NAS-lijst:", err);
+        statusBar.textContent = "Kan lijst niet laden van NAS. Kies handmatig bestanden.";
+      }
+    }
+
     zipInput.addEventListener('change', async (e) => {
       const files = Array.from(e.target.files);
       if (files.length === 0) return;
@@ -763,7 +791,8 @@
           playlist.push({
             name: file.name,
             title: cleanTitle,
-            file: file
+            file: file,
+            url: null
           });
         }
       }
@@ -824,7 +853,15 @@
       document.getElementById('trackStatus').textContent = "Pakket verwerken...";
 
       try {
-        const rawBuffer = await track.file.arrayBuffer();
+        let rawBuffer;
+        if (track.file) {
+          rawBuffer = await track.file.arrayBuffer();
+        } else if (track.url) {
+          const res = await fetch(track.url);
+          if (!res.ok) throw new Error("Fout bij downloaden van .kar bestand");
+          rawBuffer = await res.arrayBuffer();
+        }
+
         let zipBuffer = scrambleBuffer(rawBuffer.slice(0), APP_SECRET_KEY);
         let zip = null;
 
@@ -1209,6 +1246,7 @@
 
     window.addEventListener('DOMContentLoaded', () => {
       updateOffsetDisplay();
+      fetchPlaylistFromNAS();
     });
   </script>
 </body>
