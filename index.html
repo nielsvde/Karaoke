@@ -145,7 +145,7 @@
     .playlist-header {
       padding: 10px 14px;
       display: flex;
-      justify-content: space-between;
+      justify-between: space-between;
       align-items: center;
       cursor: pointer;
       background: rgba(255, 255, 255, 0.03);
@@ -643,7 +643,7 @@
 
   <script>
     const APP_SECRET_KEY = "MijnUniekeKaraokeSleutel2026!";
-    const KARAOKE_API_URL = "http://192.168.2.39/karaoke/upload.php";
+    const KARAOKE_INDEX_URL = "http://192.168.2.39/karaoke/index.json";
     const KARAOKE_BASE_DIR = "http://192.168.2.39/karaoke/";
 
     function scrambleBuffer(arrayBuffer, key) {
@@ -749,33 +749,45 @@
       lyricsWrapper.classList.toggle('fullscreen', !!document.fullscreenElement);
     });
 
-    /* --- OPHALEN VAN BESTANDEN VAN DE NAS --- */
+    /* --- OPHALEN VAN BESTANDEN VIA INDEX.JSON --- */
     async function fetchPlaylistFromNAS() {
-      statusBar.textContent = "Bestanden ophalen van NAS...";
+      statusBar.textContent = "index.json ophalen van server...";
       try {
-        const res = await fetch(KARAOKE_API_URL);
+        const res = await fetch(KARAOKE_INDEX_URL);
         if (!res.ok) throw new Error(`HTTP Fout: ${res.status}`);
         
-        const fileNames = await res.json();
-        if (!Array.isArray(fileNames) || fileNames.length === 0) {
-          statusBar.textContent = "Geen .kar bestanden op de NAS gevonden.";
+        const data = await res.json();
+        
+        if (!Array.isArray(data) || data.length === 0) {
+          statusBar.textContent = "Geen nummers in index.json gevonden.";
           return;
         }
 
-        playlist = fileNames.map(filename => ({
-          name: filename,
-          title: filename.replace(/\.(kar|zip)$/i, '').replace(/_/g, ' '),
-          url: KARAOKE_BASE_DIR + encodeURIComponent(filename),
-          file: null
-        }));
+        playlist = data.map(item => {
+          if (typeof item === 'string') {
+            return {
+              name: item,
+              title: item.replace(/\.(kar|zip)$/i, '').replace(/_/g, ' '),
+              url: KARAOKE_BASE_DIR + encodeURIComponent(item),
+              file: null
+            };
+          } else {
+            return {
+              name: item.filename || item.title || "Onbekend",
+              title: item.title || item.filename?.replace(/\.(kar|zip)$/i, '').replace(/_/g, ' ') || "Onbekend",
+              url: item.url ? (item.url.startsWith('http') ? item.url : KARAOKE_BASE_DIR + encodeURIComponent(item.url)) : KARAOKE_BASE_DIR + encodeURIComponent(item.filename),
+              file: null
+            };
+          }
+        });
 
         updatePlaylistUI();
         if (playlist.length > 0) {
           loadTrackFromPlaylist(0);
         }
       } catch (err) {
-        console.error("Fout bij ophalen van NAS-lijst:", err);
-        statusBar.textContent = "Kan lijst niet laden van NAS. Kies handmatig bestanden.";
+        console.error("Fout bij ophalen van index.json:", err);
+        statusBar.textContent = "Kan index.json niet laden. Kies handmatig bestanden.";
       }
     }
 
