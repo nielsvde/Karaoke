@@ -121,7 +121,6 @@
     }
     .track-info { overflow: hidden; flex: 1; }
     
-    /* Aangepast: Titel verdeeld over maximaal 2 regels */
     .track-title { 
       font-size: 0.95rem; 
       font-weight: 700; 
@@ -240,7 +239,7 @@
     .btn-close-fullscreen {
       display: none;
       position: absolute;
-      top: 16px; right: 16px; z-index: 10000;
+      top: 16px; right: 16px; z-index: 10002;
       background: rgba(15, 23, 42, 0.8);
       border: 1px solid var(--border-color);
       color: var(--text-main);
@@ -297,7 +296,14 @@
       margin: 0; padding: 20px 20px 0 20px;
       display: flex; flex-direction: column;
     }
-    .lyrics-wrapper.fullscreen .lyrics-container { height: 100%; border-radius: 20px; padding: 35vh 20px 180px 20px; }
+    .lyrics-wrapper.fullscreen .lyrics-container { 
+      flex: 1; 
+      height: auto; 
+      border-radius: 20px; 
+      padding: 20vh 20px 40px 20px; 
+      margin-bottom: 12px;
+      transition: all 0.35s ease;
+    }
     .lyrics-wrapper.fullscreen .lyric-line { font-size: 1.8rem; padding: 12px 20px; margin-bottom: 12px; min-height: 64px; }
     .lyrics-wrapper.fullscreen .lyric-line.active { transform: scale(1.2); text-shadow: 0 0 20px rgba(255, 255, 255, 0.9), 0 0 35px rgba(168, 85, 247, 0.7); }
     .lyrics-wrapper.fullscreen .btn-fullscreen { display: none !important; }
@@ -306,14 +312,13 @@
     /* Inklapbare spelerbalk onderaan Fullscreen */
     .fs-player-overlay {
       display: none;
-      position: absolute;
-      bottom: 0;
-      left: 50%;
-      transform: translateX(-50%);
+      position: relative;
       width: 100%;
       max-width: 460px;
+      margin: 0 auto;
       z-index: 10001;
-      padding: 0 16px calc(16px + env(safe-area-inset-bottom, 0px)) 16px;
+      padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+      transition: all 0.35s ease;
     }
     .lyrics-wrapper.fullscreen .fs-player-overlay { display: block; }
 
@@ -348,16 +353,17 @@
       gap: 12px;
       transition: max-height 0.35s ease, opacity 0.35s ease, padding 0.35s ease;
       overflow: hidden;
-      max-height: 300px;
-      opacity: 1;
+    }
+
+    /* Wanneer ingeklapt: Verberg bediening maar LAAT de voortgangsbalk zichtbaar! */
+    .fs-player-overlay.collapsed .controls-main,
+    .fs-player-overlay.collapsed .channel {
+      display: none !important;
     }
 
     .fs-player-overlay.collapsed .fs-card-inner {
-      max-height: 0;
-      padding: 0 16px;
-      border: none;
-      opacity: 0;
-      pointer-events: none;
+      padding: 12px 16px;
+      gap: 0;
     }
 
     .offset-control {
@@ -716,7 +722,6 @@
 
       for (const file of files) {
         const cleanTitle = file.name.replace(/\.(kar|zip)$/i, '').replace(/_/g, ' ');
-        // Controleer of bestand al bestaat in playlist
         if (!playlist.some(p => p.name === file.name)) {
           playlist.push({
             name: file.name,
@@ -728,14 +733,12 @@
 
       updatePlaylistUI();
 
-      // Als er nog geen nummer actief is, laad het eerste geopende nummer
       if (currentTrackIndex === -1 && playlist.length > 0) {
         loadTrackFromPlaylist(0);
       } else {
         statusBar.textContent = `${files.length} bestand(en) toegevoegd aan de lijst.`;
       }
 
-      // Open automatisch het menu als er meerdere bestanden ingeladen zijn
       if (playlist.length > 1) {
         document.getElementById('playlistBody').classList.add('open');
       }
@@ -802,7 +805,6 @@
         let extractedCoverUrl = null;
 
         if (zip) {
-          // 1. Zoek naar afbeeldingen
           for (const filename of Object.keys(zip.files)) {
             const lower = filename.toLowerCase();
             if (lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.png') || lower.endsWith('.webp')) {
@@ -813,10 +815,8 @@
             }
           }
 
-          // 2. Sorteer bestanden om consistente verwerking te garanderen
           const filenames = Object.keys(zip.files).sort();
 
-          // Eerst songteksten verwerken
           for (const filename of filenames) {
             const zipEntry = zip.files[filename];
             if (zipEntry.dir) continue;
@@ -827,7 +827,6 @@
             }
           }
 
-          // Audiobestanden flexibel toewijzen
           for (const filename of filenames) {
             const zipEntry = zip.files[filename];
             if (zipEntry.dir) continue;
@@ -852,7 +851,6 @@
           }
         }
 
-        // 3. Fallback: Afbeelding in binary zoeken
         if (!extractedCoverUrl) {
           extractedCoverUrl = parseEmbeddedImage(new Uint8Array(rawBuffer));
         }
