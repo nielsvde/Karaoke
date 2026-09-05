@@ -145,7 +145,7 @@
     .playlist-header {
       padding: 10px 14px;
       display: flex;
-      justify-between: space-between;
+      justify-content: space-between;
       align-items: center;
       cursor: pointer;
       background: rgba(255, 255, 255, 0.03);
@@ -644,8 +644,10 @@
   <script>
     const KARAOKE_INDEX_URL = "https://karaokenas.synology.me:8444/karaoke/index.php";
     const KARAOKE_BASE_DIR = "https://karaokenas.synology.me:8444/karaoke/";
+    const KARAOKE_STREAM_URL = "https://karaokenas.synology.me:8444/karaoke/stream.php?file=";
     
     function scrambleBuffer(arrayBuffer, key) {
+      if (!key) return arrayBuffer;
       const uint8 = new Uint8Array(arrayBuffer);
       const keyLength = key.length;
       for (let i = 0; i < uint8.length; i++) {
@@ -748,9 +750,9 @@
       lyricsWrapper.classList.toggle('fullscreen', !!document.fullscreenElement);
     });
 
-    /* --- OPHALEN VAN BESTANDEN VIA INDEX.JSON --- */
+    /* --- OPHALEN VAN BESTANDEN VIA INDEX.PHP EN STREAM.PHP --- */
     async function fetchPlaylistFromNAS() {
-      statusBar.textContent = "index.json ophalen van server...";
+      statusBar.textContent = "Afspeellijst ophalen van server...";
       try {
         const res = await fetch(KARAOKE_INDEX_URL);
         if (!res.ok) throw new Error(`HTTP Fout: ${res.status}`);
@@ -758,26 +760,22 @@
         const data = await res.json();
         
         if (!Array.isArray(data) || data.length === 0) {
-          statusBar.textContent = "Geen nummers in index.json gevonden.";
+          statusBar.textContent = "Geen nummers gevonden op server.";
           return;
         }
 
         playlist = data.map(item => {
-          if (typeof item === 'string') {
-            return {
-              name: item,
-              title: item.replace(/\.(kar|zip)$/i, '').replace(/_/g, ' '),
-              url: KARAOKE_BASE_DIR + encodeURIComponent(item),
-              file: null
-            };
-          } else {
-            return {
-              name: item.filename || item.title || "Onbekend",
-              title: item.title || item.filename?.replace(/\.(kar|zip)$/i, '').replace(/_/g, ' ') || "Onbekend",
-              url: item.url ? (item.url.startsWith('http') ? item.url : KARAOKE_BASE_DIR + encodeURIComponent(item.url)) : KARAOKE_BASE_DIR + encodeURIComponent(item.filename),
-              file: null
-            };
-          }
+          let fileName = typeof item === 'string' ? item : (item.filename || item.title || "Onbekend");
+          let titleName = typeof item === 'string' 
+            ? item.replace(/\.(kar|zip)$/i, '').replace(/_/g, ' ') 
+            : (item.title || fileName.replace(/\.(kar|zip)$/i, '').replace(/_/g, ' '));
+
+          return {
+            name: fileName,
+            title: titleName,
+            url: KARAOKE_STREAM_URL + encodeURIComponent(fileName),
+            file: null
+          };
         });
 
         updatePlaylistUI();
@@ -785,8 +783,8 @@
           loadTrackFromPlaylist(0);
         }
       } catch (err) {
-        console.error("Fout bij ophalen van index.json:", err);
-        statusBar.textContent = "Kan index.json niet laden. Kies handmatig bestanden.";
+        console.error("Fout bij ophalen van afspeellijst:", err);
+        statusBar.textContent = "Kan afspeellijst niet laden. Kies handmatig bestanden.";
       }
     }
 
@@ -868,12 +866,17 @@
         if (track.file) {
           rawBuffer = await track.file.arrayBuffer();
         } else if (track.url) {
-          const res = await fetch(track.url);
+          // Zorg dat het ophalen altijd via stream.php verloopt om CORS te omzeilen
+          let fetchUrl = track.url;
+          if (!fetchUrl.includes('stream.php') && fetchUrl.startsWith('http')) {
+            fetchUrl = KARAOKE_STREAM_URL + encodeURIComponent(track.name);
+          }
+          const res = await fetch(fetchUrl);
           if (!res.ok) throw new Error("Fout bij downloaden van .kar bestand");
           rawBuffer = await res.arrayBuffer();
         }
 
-        let zipBuffer = scrambleBuffer(rawBuffer.slice(0), APP_SECRET_KEY);
+        let zipBuffer = (typeof APP_SECRET_KEY !== 'undefined') ? scrambleBuffer(rawBuffer.slice(0), APP_SECRET_KEY) : rawBuffer.slice(0);
         let zip = null;
 
         try {
@@ -936,7 +939,7 @@
           }
         }
 
-        if (!extractedCoverUrl) {
+        if (!extractedCoverUrl && rawBuffer) {
           extractedCoverUrl = parseEmbeddedImage(new Uint8Array(rawBuffer));
         }
 
