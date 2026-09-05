@@ -486,7 +486,7 @@
     <div class="kar-actions">
       <button class="btn-zip" onclick="document.getElementById('zipInput').click()">
         <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
-        Open .KAR Bestanden
+        Open Lokale .KAR Bestanden
       </button>
       <input type="file" id="zipInput" accept=".kar,.zip,application/x-zip-compressed,application/zip,application/octet-stream" multiple>
     </div>
@@ -496,7 +496,7 @@
       <div class="track-cover" id="coverContainer">🎵</div>
       <div class="track-info">
         <div class="track-title" id="trackTitle">Geen nummer geladen</div>
-        <div class="track-status" id="trackStatus">Selecteer .kar bestand(en) om te beginnen</div>
+        <div class="track-status" id="trackStatus">Selecteer een nummer om te beginnen</div>
       </div>
     </div>
 
@@ -640,11 +640,13 @@
       </div>
     </div>
 
-    <div class="status-bar" id="statusBar">Upload een of meerdere .kar bestanden om te beginnen.</div>
+    <div class="status-bar" id="statusBar">Bestanden ophalen van NAS...</div>
   </div>
 
   <script>
     const APP_SECRET_KEY = "MijnUniekeKaraokeSleutel2026!";
+    const NAS_INDEX_URL = "https://karaokenas.synology.me:8444/karaoke/index.php";
+    const NAS_BASE_DIR = "https://karaokenas.synology.me:8444/karaoke/";
 
     function scrambleBuffer(arrayBuffer, key) {
       const uint8 = new Uint8Array(arrayBuffer);
@@ -749,17 +751,65 @@
       lyricsWrapper.classList.toggle('fullscreen', !!document.fullscreenElement);
     });
 
-    // NAS & Universele File Reader Helper
-    async function getArrayBufferFromFile(file) {
-      if (file.arrayBuffer) {
-        return await file.arrayBuffer();
+    // NAS-lijst ophalen bij het opstarten
+    async function loadLiedjesVanNAS() {
+      try {
+        statusBar.textContent = "Verbinden met NAS...";
+        const response = await fetch(NAS_INDEX_URL);
+        if (!response.ok) throw new Error(`HTTP Fout: ${response.status}`);
+        
+        const bestanden = await response.json();
+        
+        let toegevoegdCount = 0;
+        bestanden.forEach(item => {
+          const fileName = typeof item === 'string' ? item : (item.name || item.file);
+          if (fileName && fileName.toLowerCase().endsWith('.kar')) {
+            const cleanTitle = fileName.split('/').pop().replace(/\.kar$/i, '').replace(/_/g, ' ');
+            const fullUrl = fileName.startsWith('http') ? fileName : `${NAS_BASE_DIR}${fileName}`;
+            
+            if (!playlist.some(p => p.url === fullUrl)) {
+              playlist.push({
+                name: fileName.split('/').pop(),
+                title: cleanTitle,
+                url: fullUrl,
+                file: null
+              });
+              toegevoegdCount++;
+            }
+          }
+        });
+
+        updatePlaylistUI();
+        
+        if (playlist.length > 0) {
+          statusBar.textContent = `${playlist.length} nummers geladen van NAS.`;
+          document.getElementById('playlistBody').classList.add('open');
+        } else {
+          statusBar.textContent = "Geen .kar bestanden gevonden op NAS.";
+        }
+      } catch (err) {
+        console.error("NAS ophaalfout:", err);
+        statusBar.textContent = "Fout bij ophalen lijst van NAS (CORS of netwerk).";
       }
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = () => reject(reader.error);
-        reader.readAsArrayBuffer(file);
-      });
+    }
+
+    async function getArrayBufferFromFileOrUrl(item) {
+      if (item.file) {
+        if (item.file.arrayBuffer) {
+          return await item.file.arrayBuffer();
+        }
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = () => reject(reader.error);
+          reader.readAsArrayBuffer(item.file);
+        });
+      } else if (item.url) {
+        const res = await fetch(item.url);
+        if (!res.ok) throw new Error(`Netwerkfout bij downloaden: ${res.statusText}`);
+        return await res.arrayBuffer();
+      }
+      throw new Error("Geen geldige bron gevonden.");
     }
 
     zipInput.addEventListener('change', async (e) => {
@@ -774,7 +824,8 @@
           playlist.push({
             name: file.name,
             title: cleanTitle,
-            file: file
+            file: file,
+            url: null
           });
         }
       }
@@ -830,13 +881,12 @@
 
       updatePlaylistUI();
 
-      statusBar.textContent = "Nummer inladen...";
+      statusBar.textContent = "Nummer ophalen & inladen...";
       document.getElementById('trackTitle').textContent = track.title;
       document.getElementById('trackStatus').textContent = "Pakket verwerken...";
 
       try {
-        // Gebruik robuuste lezing voor netwerkshares / NAS
-        const rawBuffer = await getArrayBufferFromFile(track.file);
+        const rawBuffer = await getArrayBufferFromFileOrUrl(track);
         let zipBuffer = scrambleBuffer(rawBuffer.slice(0), APP_SECRET_KEY);
         let zip = null;
 
@@ -1221,6 +1271,7 @@
 
     window.addEventListener('DOMContentLoaded', () => {
       updateOffsetDisplay();
+      loadLiedjesVanNAS();
     });
   </script>
 </body>
