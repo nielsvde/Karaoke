@@ -646,7 +646,6 @@
   <script>
     const APP_SECRET_KEY = "MijnUniekeKaraokeSleutel2026!";
     const NAS_INDEX_URL = "https://karaokenas.synology.me:8444/karaoke/index.php";
-    const NAS_BASE_DIR = "https://karaokenas.synology.me:8444/karaoke/";
 
     function scrambleBuffer(arrayBuffer, key) {
       const uint8 = new Uint8Array(arrayBuffer);
@@ -762,10 +761,24 @@
         
         let toegevoegdCount = 0;
         bestanden.forEach(item => {
-          const fileName = typeof item === 'string' ? item : (item.name || item.file);
+          // Ondersteun zowel gewone PHP arrays/objects als directe URLs
+          let fileName = "";
+          let fullUrl = "";
+
+          if (typeof item === 'object' && item !== null) {
+            fileName = item.filename || item.name || item.file || "";
+            fullUrl = item.url || (NAS_INDEX_URL + "?file=" + encodeURIComponent(fileName));
+          } else if (typeof item === 'string') {
+            fileName = item;
+            if (fileName.startsWith('http')) {
+              fullUrl = fileName;
+            } else {
+              fullUrl = NAS_INDEX_URL + "?file=" + encodeURIComponent(fileName);
+            }
+          }
+
           if (fileName && fileName.toLowerCase().endsWith('.kar')) {
             const cleanTitle = fileName.split('/').pop().replace(/\.kar$/i, '').replace(/_/g, ' ');
-            const fullUrl = fileName.startsWith('http') ? fileName : `${NAS_BASE_DIR}${fileName}`;
             
             if (!playlist.some(p => p.url === fullUrl)) {
               playlist.push({
