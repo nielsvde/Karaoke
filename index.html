@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#0f172a">
-  <title>Karaoke party</title>
+  <title>Karaoke Party Player</title>
 
-  <!-- JSZip voor het verwerken van het .kar pakket -->
+  <!-- JSZip voor het uitpakken van .kar / .zip pakketten -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
   <style>
@@ -89,7 +89,6 @@
     }
     .btn-zip:hover { background: rgba(255, 255, 255, 0.15); }
 
-    /* Titel en Afbeelding Card */
     .track-card {
       background: rgba(15, 23, 42, 0.6);
       border: 1px solid var(--border-color);
@@ -134,7 +133,6 @@
     }
     .track-status { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
 
-    /* Playlist / Menu Sectie */
     .playlist-section {
       background: rgba(15, 23, 42, 0.5);
       border: 1px solid var(--border-color);
@@ -264,7 +262,6 @@
       padding: 60px 12px;
       text-align: center;
       scroll-behavior: smooth;
-
       border-bottom: none !important;
       scrollbar-width: none;
       -ms-overflow-style: none;
@@ -285,9 +282,7 @@
       );
     }
 
-    .lyrics-container::-webkit-scrollbar {
-      display: none;
-    }
+    .lyrics-container::-webkit-scrollbar { display: none; }
 
     .lyric-line {
       padding: 6px 12px;
@@ -304,7 +299,6 @@
       background: transparent;
       border: none;
       transform-origin: center center;
-      
       white-space: normal;
       word-break: break-word;
       overflow-wrap: break-word;
@@ -478,13 +472,13 @@
 
   <div class="container">
     <header>
-      <h1>Karaoke party</h1>
+      <h1>Karaoke Party</h1>
     </header>
 
     <div class="kar-actions">
       <button class="btn-zip" onclick="document.getElementById('zipInput').click()">
         <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
-        Handmatig .KAR Bestanden Openen
+        Open .KAR Bestanden
       </button>
       <input type="file" id="zipInput" accept=".kar,.zip" multiple>
     </div>
@@ -494,7 +488,7 @@
       <div class="track-cover" id="coverContainer">🎵</div>
       <div class="track-info">
         <div class="track-title" id="trackTitle">Geen nummer geladen</div>
-        <div class="track-status" id="trackStatus">Lijst laden van server...</div>
+        <div class="track-status" id="trackStatus">Selecteer .kar bestand(en) om te beginnen</div>
       </div>
     </div>
 
@@ -506,8 +500,7 @@
       </div>
       <div class="playlist-body" id="playlistBody">
         <input type="text" class="playlist-search" id="playlistSearch" placeholder="Zoek nummer..." oninput="filterPlaylist()">
-        <ul class="playlist-list" id="playlistList">
-        </ul>
+        <ul class="playlist-list" id="playlistList"></ul>
       </div>
     </div>
 
@@ -638,16 +631,14 @@
       </div>
     </div>
 
-    <div class="status-bar" id="statusBar">Lijst van server ophalen...</div>
+    <div class="status-bar" id="statusBar">Klaar voor gebruik.</div>
   </div>
 
   <script>
-    const KARAOKE_INDEX_URL = "https://karaokenas.synology.me:8444/karaoke/index.php";
-    const KARAOKE_BASE_DIR = "https://karaokenas.synology.me:8444/karaoke/";
-    const KARAOKE_STREAM_URL = "https://karaokenas.synology.me:8444/karaoke/stream.php?file=";
-    
+    const APP_SECRET_KEY = "MijnUniekeKaraokeSleutel2026!";
+
+    // XOR Decryptie/Encryption routine voor .kar bestanden
     function scrambleBuffer(arrayBuffer, key) {
-      if (!key) return arrayBuffer;
       const uint8 = new Uint8Array(arrayBuffer);
       const keyLength = key.length;
       for (let i = 0; i < uint8.length; i++) {
@@ -750,41 +741,25 @@
       lyricsWrapper.classList.toggle('fullscreen', !!document.fullscreenElement);
     });
 
-    /* --- OPHALEN VAN BESTANDEN VIA INDEX.PHP EN STREAM.PHP --- */
-    async function fetchPlaylistFromNAS() {
-      statusBar.textContent = "Afspeellijst ophalen van server...";
+    // NAS Synchronisatie & Lokale Uploads Handler
+    async function fetchNASPlaylist() {
       try {
-        const res = await fetch(KARAOKE_INDEX_URL);
-        if (!res.ok) throw new Error(`HTTP Fout: ${res.status}`);
-        
-        const data = await res.json();
-        
-        if (!Array.isArray(data) || data.length === 0) {
-          statusBar.textContent = "Geen nummers gevonden op server.";
-          return;
+        const response = await fetch('index.php?list=1');
+        if (response.ok) {
+          const remoteFiles = await response.json();
+          if (Array.isArray(remoteFiles) && remoteFiles.length > 0) {
+            remoteFiles.forEach(fileUrl => {
+              const fileName = fileUrl.split('/').pop();
+              const cleanTitle = decodeURIComponent(fileName).replace(/\.(kar|zip)$/i, '').replace(/_/g, ' ');
+              if (!playlist.some(p => p.url === fileUrl)) {
+                playlist.push({ name: fileName, title: cleanTitle, url: fileUrl });
+              }
+            });
+            updatePlaylistUI();
+          }
         }
-
-        playlist = data.map(item => {
-          let fileName = typeof item === 'string' ? item : (item.filename || item.title || "Onbekend");
-          let titleName = typeof item === 'string' 
-            ? item.replace(/\.(kar|zip)$/i, '').replace(/_/g, ' ') 
-            : (item.title || fileName.replace(/\.(kar|zip)$/i, '').replace(/_/g, ' '));
-
-          return {
-            name: fileName,
-            title: titleName,
-            url: KARAOKE_STREAM_URL + encodeURIComponent(fileName),
-            file: null
-          };
-        });
-
-        updatePlaylistUI();
-        if (playlist.length > 0) {
-          loadTrackFromPlaylist(0);
-        }
-      } catch (err) {
-        console.error("Fout bij ophalen van afspeellijst:", err);
-        statusBar.textContent = "Kan afspeellijst niet laden. Kies handmatig bestanden.";
+      } catch (e) {
+        console.log("Geen NAS index.php gevonden, werkt op uitsluitend handmatige modus.");
       }
     }
 
@@ -797,12 +772,7 @@
       for (const file of files) {
         const cleanTitle = file.name.replace(/\.(kar|zip)$/i, '').replace(/_/g, ' ');
         if (!playlist.some(p => p.name === file.name)) {
-          playlist.push({
-            name: file.name,
-            title: cleanTitle,
-            file: file,
-            url: null
-          });
+          playlist.push({ name: file.name, title: cleanTitle, file: file });
         }
       }
 
@@ -863,33 +833,14 @@
 
       try {
         let rawBuffer;
-
-        // 1. HANDMATIG GEÜPLOAD BESTAND
         if (track.file) {
           rawBuffer = await track.file.arrayBuffer();
-        } 
-        // 2. BESTAND VAN NAS / SERVER
-        else if (track.url) {
-          let fetchUrl = track.url;
-          if (!fetchUrl.includes('stream.php') && fetchUrl.startsWith('http')) {
-            fetchUrl = KARAOKE_STREAM_URL + encodeURIComponent(track.name);
-          }
-          const res = await fetch(fetchUrl);
-          if (!res.ok) throw new Error("Fout bij downloaden van .kar bestand van server");
+        } else if (track.url) {
+          const res = await fetch(track.url);
           rawBuffer = await res.arrayBuffer();
-        } else {
-          throw new Error("Geen geldige bron gevonden voor dit nummer.");
         }
 
-        if (!rawBuffer || rawBuffer.byteLength === 0) {
-          throw new Error("Het bestand is leeg of kon niet worden ingelezen.");
-        }
-
-        // Controleer op eventuele encryptie / scrambling
-        let zipBuffer = (typeof APP_SECRET_KEY !== 'undefined' && window.APP_SECRET_KEY) 
-          ? scrambleBuffer(rawBuffer.slice(0), APP_SECRET_KEY) 
-          : rawBuffer.slice(0);
-          
+        let zipBuffer = scrambleBuffer(rawBuffer.slice(0), APP_SECRET_KEY);
         let zip = null;
 
         try {
@@ -902,65 +853,57 @@
           }
         }
 
-        // Zorg dat het uitsluitend als een geldig ZIP/KAR archief verwerkt wordt
-        if (!zip) {
-          throw new Error("Ongeldig .kar bestand: Het bestand is geen ZIP-container.");
-        }
-
-        musicBuffer = null; 
-        vocalBuffer = null; 
-        lyricsData = [];
+        musicBuffer = null; vocalBuffer = null; lyricsData = [];
         let extractedCoverUrl = null;
 
-        const filenames = Object.keys(zip.files).sort();
-
-        // Cover afbeelding zoeken
-        for (const filename of filenames) {
-          const lower = filename.toLowerCase();
-          if (lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.png') || lower.endsWith('.webp')) {
-            const imgData = await zip.files[filename].async('uint8array');
-            const mime = lower.endsWith('.png') ? 'image/png' : 'image/jpeg';
-            extractedCoverUrl = `data:${mime};base64,` + bufferToBase64(imgData);
-            break;
+        if (zip) {
+          for (const filename of Object.keys(zip.files)) {
+            const lower = filename.toLowerCase();
+            if (lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.png') || lower.endsWith('.webp')) {
+              const imgData = await zip.files[filename].async('uint8array');
+              const mime = lower.endsWith('.png') ? 'image/png' : 'image/jpeg';
+              extractedCoverUrl = `data:${mime};base64,` + bufferToBase64(imgData);
+              break;
+            }
           }
-        }
 
-        // LRC Songtekst zoeken
-        for (const filename of filenames) {
-          const zipEntry = zip.files[filename];
-          if (zipEntry.dir) continue;
-          const lowerName = filename.toLowerCase();
-          if (lowerName.endsWith(".lrc") || lowerName.endsWith(".txt")) {
-            const lrcText = await zipEntry.async('string');
-            parseLRC(lrcText);
+          const filenames = Object.keys(zip.files).sort();
+
+          for (const filename of filenames) {
+            const zipEntry = zip.files[filename];
+            if (zipEntry.dir) continue;
+            const lowerName = filename.toLowerCase();
+            if (lowerName.endsWith(".lrc") || lowerName.endsWith(".txt")) {
+              const lrcText = await zipEntry.async('string');
+              parseLRC(lrcText);
+            }
           }
-        }
 
-        // Audiosporen uitpakken
-        for (const filename of filenames) {
-          const zipEntry = zip.files[filename];
-          if (zipEntry.dir) continue;
+          for (const filename of filenames) {
+            const zipEntry = zip.files[filename];
+            if (zipEntry.dir) continue;
 
-          const lowerName = filename.toLowerCase();
-          const isAudio = lowerName.endsWith(".mp3") || lowerName.endsWith(".wav") || lowerName.endsWith(".ogg") || lowerName.endsWith(".m4a");
+            const lowerName = filename.toLowerCase();
+            const isAudio = lowerName.endsWith(".mp3") || lowerName.endsWith(".wav") || lowerName.endsWith(".ogg") || lowerName.endsWith(".m4a");
 
-          if (isAudio) {
-            const data = await zipEntry.async('arraybuffer');
-            if (!extractedCoverUrl) extractedCoverUrl = parseID3Cover(new Uint8Array(data));
+            if (isAudio) {
+              const data = await zipEntry.async('arraybuffer');
+              if (!extractedCoverUrl) extractedCoverUrl = parseID3Cover(new Uint8Array(data));
 
-            if (lowerName.includes("vocal") || lowerName.includes("zang")) {
-              vocalBuffer = await decodeAudioArrayBuffer(data);
-            } 
-            else if (!musicBuffer) {
-              musicBuffer = await decodeAudioArrayBuffer(data);
-            } 
-            else if (!vocalBuffer) {
-              vocalBuffer = await decodeAudioArrayBuffer(data);
+              if (lowerName.includes("vocal") || lowerName.includes("zang")) {
+                vocalBuffer = await decodeAudioArrayBuffer(data);
+              } 
+              else if (!musicBuffer) {
+                musicBuffer = await decodeAudioArrayBuffer(data);
+              } 
+              else if (!vocalBuffer) {
+                vocalBuffer = await decodeAudioArrayBuffer(data);
+              }
             }
           }
         }
 
-        if (!extractedCoverUrl && rawBuffer) {
+        if (!extractedCoverUrl) {
           extractedCoverUrl = parseEmbeddedImage(new Uint8Array(rawBuffer));
         }
 
@@ -972,18 +915,12 @@
         }
 
         checkReady();
-
-        if (!musicBuffer && !vocalBuffer) {
-          document.getElementById('trackStatus').textContent = "Geen afspeelbare audiostreams in .kar bestand gevonden.";
-          statusBar.textContent = "Fout: Geen MP3/OGG/WAV audio in het .kar bestand.";
-        } else {
-          document.getElementById('trackStatus').textContent = "Nummer geladen";
-          statusBar.textContent = "Klaar om af te spelen!";
-        }
+        document.getElementById('trackStatus').textContent = "Nummer geladen";
+        statusBar.textContent = "Klaar om af te spelen!";
       } catch (err) {
-        console.error("Fout bij laden van track:", err);
+        console.error(err);
         statusBar.textContent = "Fout bij inladen van KAR-bestand.";
-        document.getElementById('trackStatus').textContent = err.message || "Kan bestand niet verwerken";
+        document.getElementById('trackStatus').textContent = "Kan bestand niet verwerken";
       }
     }
 
@@ -1287,7 +1224,7 @@
 
     window.addEventListener('DOMContentLoaded', () => {
       updateOffsetDisplay();
-      fetchPlaylistFromNAS();
+      fetchNASPlaylist();
     });
   </script>
 </body>
